@@ -2,6 +2,8 @@
 
 Standalone newsletter generator that pulls meeting corpus from [Santa Fe Minutes](https://santafeminutes.space) via the export API — no direct Neon access.
 
+**Repo:** [github.com/rmarti55/SFMnewsletter](https://github.com/rmarti55/SFMnewsletter)
+
 ## Setup
 
 ```sh
