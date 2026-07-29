@@ -146,3 +146,22 @@ export function buildSourcesBlock(sources: { id: number; name: string; baseUrl: 
     .join('\n');
   return `\n\n---\n\n**Sources**\n${links}`;
 }
+
+/** Phrases that indicate the model welcomed a fee hike — contradicts editorial stance. */
+export const FEE_HIKE_FORBIDDEN_FRAMINGS = [
+  'welcome, if overdue',
+  'welcome change',
+  'overdue change',
+  'step in the right direction',
+  'previous fee was a joke',
+  'fee was a joke',
+  'laughably low',
+  'too low to matter',
+  'cheap buyout',
+  'critical move to make developers',
+];
+
+export function findForbiddenFramings(body: string, phrases = FEE_HIKE_FORBIDDEN_FRAMINGS): string[] {
+  const norm = normalizeForMatch(body);
+  return phrases.filter((p) => norm.includes(normalizeForMatch(p)));
+}

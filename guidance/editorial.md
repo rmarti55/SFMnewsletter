@@ -67,11 +67,22 @@ Framing hook: the city is taking credit for housing it didn't fund.
 Use only when this week's meetings actually cover unit-count / award claims.
 
 ## Fee-in-lieu pricing (Bill 2026-11)
-Stance: AGAINST the current cheap buyout — and AGAINST treating higher fees alone, or NIMBY process, as the fix. The gospel is units built.
-Why: SFHP delivered 4.1% affordable units against a 15–20% mandate — the buyout is priced too low to matter. Pre-2016 (zero rental construction 2005–2016 with no fee-in-lieu) shows choking supply kills homes. Neither "raise the fee and call it done" nor "kill the fee for process theater" is the answer: build.
-Talking points: cheap buyout fails; supply is the goal; do not both-sides NIMBYs who want less housing; city's own 11 years of data prove supply failure.
-Framing hook: the fee is a cheap escape hatch from building — fix policy so homes get built, not so debates feel fair.
+Stance: AGAINST the fee-in-lieu system as currently designed — NOT because the fee is too low, but because it funds a broken pipeline that has failed to produce housing supply. ALSO AGAINST treating higher fees alone, payment-deferral schemes, or NIMBY process as the fix. The gospel is units built.
+Why: The city already raised the buyout high enough to effectively force on-site affordable construction; housing starts collapsed and rents rose — a policy failure most officials and residents don't acknowledge. SFHP delivered 4.1% affordable units against a 15–20% mandate — a compliance failure, not evidence the fee was too low. Pre-2016 (zero rental construction 2005–2016) shows choking supply kills homes. Fee-in-lieu dollars flow into AHTF, which has largely subsidized rentals not construction (see demand-side subsidy spending). OAH policies often make building harder and more expensive (see Office of Affordable Housing). Neither "raise the fee and call it done" nor "kill the fee for process theater" is the answer: build.
+When this topic is on the agenda, also apply in our take: Affordable Housing Trust Fund, Demand-side subsidy spending, Office of Affordable Housing.
+Talking points: punitive fees already killed supply; trust fund pays rent not homes; OAH chokes building; supply is the goal; do not both-sides NIMBYs who want less housing; city's own data prove supply failure; most residents don't know this history played out here.
+Framing hook: the city is rearranging fee schedules on a pipeline that already choked supply and mostly pays rent — not building homes.
+Forbidden framings: NEVER welcome, overdue, step in the right direction, previous fee was a joke, too low, cheap buyout, critical move to make developers contribute, laughably low fee.
+How to use transcript quotes: Officials/staff (including Chavez) arguing the fee is too low or pushing higher fees — report what they said, but our take REBUTS; they are part of the broken system's own narrative. Payment-deferral "loan program" quotes are useful to expose dysfunction, NOT to endorse the hike.
 Use only when fee-in-lieu / SFHP is actually on this week's record.
+
+## Office of Affordable Housing
+Stance: AGAINST current OAH policy direction without structural reform toward supply-side outcomes.
+Why: OAH policies often make housing harder and more expensive to build, not easier. The office's own reporting has shown it has largely been ineffective if not outright damaging to affordability — sad irony for an "affordable housing" office.
+Talking points: OAH blocks supply; own reporting shows failure; policies raise build cost; fee-in-lieu and AHTF sit under this broken apparatus.
+Framing hook: the office named for affordable housing makes building harder.
+When fee-in-lieu / SFHP / AHTF is on the agenda, weave OAH into the our-take even if OAH is not named in this week's transcript.
+Use only when affordable housing policy, fee-in-lieu, SFHP, or AHTF is on this week's record.
 
 ## Displacement counted as "progress"
 Stance: AGAINST the city's use of a shrinking rental gap as a success metric when the gap shrinks via displacement.
@@ -82,7 +93,8 @@ Use only when Consolidated Plan / rental-gap metrics are on this week's record.
 
 ## Demand-side subsidy spending (rental assistance vs construction)
 Stance: AGAINST current AHTF spending mix that pays rent instead of building in a supply-constrained market.
-Why: Expenditure structure has no capital/construction line items — spending skews to demand-side subsidy, which tends to push rents up rather than down when supply is tight.
+Why: Expenditure structure has no capital/construction line items — spending skews to demand-side subsidy, which tends to push rents up rather than down when supply is tight. Fee-in-lieu dollars fund this spending mix.
+Cross-link: when fee-in-lieu is on the agenda, cite this in our take.
 Talking points: trust fund meant to build mostly pays rent; add construction capital lines; demand-side cash ≠ housing supply.
 Framing hook: the trust fund meant to build housing mostly pays rent instead.
 Use only when AHTF spending mix is on this week's record.

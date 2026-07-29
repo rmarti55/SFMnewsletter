@@ -4,6 +4,7 @@ import {
   selectDocketItems,
   extractQuotedSpans,
   findFabricatedQuotes,
+  findForbiddenFramings,
   stripFabricatedQuotes,
   findGuidanceLeaks,
   stripGuidanceLeakParagraphs,
@@ -88,5 +89,19 @@ describe('stripFabricatedQuotes', () => {
 describe('extractQuotedSpans', () => {
   it('extracts spans over threshold', () => {
     expect(extractQuotedSpans('He said "the street is unsafe here"')).toEqual(['the street is unsafe here']);
+  });
+});
+
+describe('findForbiddenFramings', () => {
+  it('flags welcome-overdue fee hike framing', () => {
+    expect(
+      findForbiddenFramings('This is a welcome, if overdue, change to the fee-in-lieu.'),
+    ).toContain('welcome, if overdue');
+  });
+
+  it('passes clean fee-in-lieu take', () => {
+    expect(
+      findForbiddenFramings('Another fee hike on a pipeline that already choked supply.'),
+    ).toEqual([]);
   });
 });

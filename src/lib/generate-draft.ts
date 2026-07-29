@@ -3,6 +3,7 @@ import {
   buildSourcesBlock,
   extractGuidanceFingerprints,
   findFabricatedQuotes,
+  findForbiddenFramings,
   findGuidanceLeaks,
   stripFabricatedQuotes,
   stripGuidanceLeakParagraphs,
@@ -90,6 +91,20 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
     }
     guidanceLeaks = findGuidanceLeaks(body, guidanceFingerprints, meetingFactSurface);
     if (guidanceLeaks.length > 0) body = stripGuidanceLeakParagraphs(body, guidanceLeaks);
+  }
+
+  let forbiddenFramings = findForbiddenFramings(body);
+  if (forbiddenFramings.length > 0) {
+    console.warn(`[generate] ${forbiddenFramings.length} forbidden framing(s) — regenerating`);
+    const retry = await runSynthesis(storylines, upcoming, guidance, { forbiddenFramings });
+    if (retry.body.trim()) {
+      synth = retry;
+      body = retry.body.trim();
+    }
+    forbiddenFramings = findForbiddenFramings(body);
+    if (forbiddenFramings.length > 0) {
+      console.warn(`[generate] forbidden framing(s) remain after retry: ${forbiddenFramings.join(', ')}`);
+    }
   }
 
   body = rewriteIsoDatesToUs(body);

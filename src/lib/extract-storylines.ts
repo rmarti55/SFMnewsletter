@@ -35,6 +35,7 @@ Hard rules:
 - Write any dates in American MM/DD/YYYY form (e.g. 07/14/2026). Never use year-first YYYY-MM-DD.
 - Only use facts and quotes present in this transcript. NEVER invent names, numbers, quotes, or events. Every quote must appear word-for-word in the transcript. NEVER pull dollar amounts or research claims from the editorial lens.
 - Prefer decisions that add or block housing supply, money, dishonest progress metrics, and status-quo policy failure. Neighborhood opposition / packed anti-housing turnout is material only as an obstacle to supply — never treat it as the moral center or as automatic significance. Do NOT boost a storyline because "the community pushed back."
+- FEE-IN-LIEU / SFHP: when officials/staff argue the fee is too low or push for higher fees, note their position but flag that it contradicts our editorial stance (punitive fees already failed; system funds broken AHTF/OAH pipeline). Do NOT frame a fee increase as progress in whyItMatters.
 - For Historic Districts / design-review fights: capture the substance-vs-style contrast — what the project is for (function, cost, public need) vs what the board fixated on (aesthetics, style codes, documentation). If the debate never left the style lane, say so; do not invent an economic-impact presentation that was not in the transcript.
 - A dull meeting can yield zero storylines — return an empty array rather than manufacturing news.
 - Extract at most 3 storylines; fewer is better if only 1-2 are real.

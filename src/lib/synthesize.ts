@@ -37,7 +37,8 @@ Rules:
 - Only use facts, names, numbers, and quotes present in the provided material. Do NOT invent anything. If there are no real storylines, write a brief docket-only issue.
 - Do NOT write any links or URLs — a Sources list is appended automatically.${hasLens ? `
 - NEVER both-sides a housing fight. NEVER frame neighborhood veto turnout as the story's conscience. Gospel: more homes, honest attribution, real construction — not paper progress.
-- For design / historic / land-use fights, use this blurb move: (1) what actually matters — function, cost, public need, housing; (2) what the board answered with — style/aesthetics/documentation theater; (3) our take — these boards are substance-blind style police.` : ''}
+- For design / historic / land-use fights, use this blurb move: (1) what actually matters — function, cost, public need, housing; (2) what the board answered with — style/aesthetics/documentation theater; (3) our take — these boards are substance-blind style police.
+- FEE-IN-LIEU / SFHP items: when editorial lens says AGAINST higher fees alone as the fix, NEVER describe a fee increase as welcome, overdue, a step forward, fixing a too-low buyout, or a joke fee. Officials/staff pushing higher fees (including Affordable Housing Director) are NOT our allies — quote them for the record, rebut in our take. Honor any Forbidden framings in the lens. When fee-in-lieu is on the agenda, weave AHTF + demand-side spending + OAH into the our-take as editorial analysis — not attributed to this week's speakers unless they said it.` : ''}
 
 Structure the body in Markdown:
 - A one-line kicker/headline (##).
@@ -52,7 +53,7 @@ export async function runSynthesis(
   storylines: Storyline[],
   upcoming: UpcomingItem[],
   guidance: string | null,
-  opts?: { forbiddenQuotes?: string[]; forbiddenGuidanceFacts?: string[] },
+  opts?: { forbiddenQuotes?: string[]; forbiddenGuidanceFacts?: string[]; forbiddenFramings?: string[] },
 ): Promise<{ subject: string; body: string; model: string }> {
   let userText = buildSynthesisSourceText(storylines, upcoming);
   if (opts?.forbiddenQuotes?.length) {
@@ -61,7 +62,10 @@ export async function runSynthesis(
   if (opts?.forbiddenGuidanceFacts?.length) {
     userText += `\n\nFORBIDDEN GUIDANCE FACTS — delete every paragraph using:\n${opts.forbiddenGuidanceFacts.map((f) => `- ${f}`).join('\n')}`;
   }
-  const cooler = Boolean(opts?.forbiddenQuotes?.length || opts?.forbiddenGuidanceFacts?.length);
+  if (opts?.forbiddenFramings?.length) {
+    userText += `\n\nFORBIDDEN FRAMINGS — remove or rewrite any sentence containing these phrases:\n${opts.forbiddenFramings.map((f) => `- ${f}`).join('\n')}`;
+  }
+  const cooler = Boolean(opts?.forbiddenQuotes?.length || opts?.forbiddenGuidanceFacts?.length || opts?.forbiddenFramings?.length);
   const { data, model } = await jsonCompletion<{ subject: string; body: string }>(
     [
       { role: 'system', content: buildSynthesisSystemPrompt(guidance) },
