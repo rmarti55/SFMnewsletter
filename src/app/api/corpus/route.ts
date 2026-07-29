@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiErrorResponse } from '@/lib/config-errors';
 import { fetchNewsletterCorpus } from '@/lib/sfm-client';
 import { getTodayInDenver } from '@/lib/datetime';
 
@@ -11,6 +12,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(corpus);
   } catch (error) {
     console.error('corpus preview error:', error);
-    return NextResponse.json({ error: 'Failed to fetch corpus' }, { status: 500 });
+    return getApiErrorResponse(error, 'Failed to fetch corpus');
   }
 }

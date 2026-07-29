@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiErrorResponse } from '@/lib/config-errors';
 import { generateNewsletterDraft } from '@/lib/generate-draft';
 import { getTodayInDenver } from '@/lib/datetime';
 
@@ -25,6 +26,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, edition: result.edition, readiness: result.readiness });
   } catch (error) {
     console.error('generate error:', error);
-    return NextResponse.json({ error: 'Failed to generate' }, { status: 500 });
+    return getApiErrorResponse(error, 'Failed to generate');
   }
 }

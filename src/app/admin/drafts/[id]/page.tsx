@@ -1,8 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { StatusBadge } from '@/components/status-badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 interface Edition {
   id: number;
@@ -20,6 +30,8 @@ export default function DraftEditorPage() {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [msg, setMsg] = useState('');
+  const [msgError, setMsgError] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     fetch(`/api/drafts/${id}`)
@@ -32,69 +44,120 @@ export default function DraftEditorPage() {
   }, [id]);
 
   async function save() {
+    setBusy(true);
+    setMsg('');
     const res = await fetch(`/api/drafts/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subject, bodyMarkdown: body }),
     });
-    if (res.ok) setMsg('Saved.');
-    else setMsg('Save failed.');
+    setMsgError(!res.ok);
+    setMsg(res.ok ? 'Saved.' : 'Save failed.');
+    setBusy(false);
   }
 
   async function del() {
     if (!confirm('Delete this draft?')) return;
+    setBusy(true);
     await fetch(`/api/drafts/${id}`, { method: 'DELETE' });
     router.push('/admin/drafts');
   }
 
   async function send() {
+    setBusy(true);
+    setMsg('');
     const res = await fetch(`/api/drafts/${id}/send`, { method: 'POST' });
     const data = await res.json();
+    setMsgError(!res.ok);
     setMsg(res.ok ? 'Sent.' : data.error || 'Send failed.');
+    setBusy(false);
   }
 
-  if (!edition) return <p>Loading…</p>;
+  if (!edition) {
+    return (
+      <div className="flex items-center justify-center py-24 text-muted-foreground">
+        <Loader2 className="mr-2 size-5 animate-spin" />
+        Loading draft…
+      </div>
+    );
+  }
+
+  const isDraft = edition.status === 'draft';
 
   return (
-    <div>
-      <h1>Draft #{edition.id}</h1>
-      <p style={{ color: '#666' }}>{edition.issueDate} — {edition.status}</p>
-      <label style={{ display: 'block', marginBottom: 12 }}>
-        Subject
-        <input
-          style={{ display: 'block', width: '100%', marginTop: 4 }}
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          disabled={edition.status !== 'draft'}
-        />
-      </label>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <label>
-          Body (markdown)
-          <textarea
-            style={{ width: '100%', minHeight: 400, marginTop: 4, fontFamily: 'monospace', fontSize: 13 }}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            disabled={edition.status !== 'draft'}
-          />
-        </label>
-        <div>
-          <div style={{ fontSize: 13, marginBottom: 4 }}>Preview</div>
-          <div style={{ border: '1px solid #ddd', padding: 16, background: '#fff', minHeight: 400, fontSize: 14 }}>
-            <ReactMarkdown>{body}</ReactMarkdown>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/admin/drafts">
+            <ArrowLeft />
+            Back to drafts
+          </Link>
+        </Button>
+        <Separator orientation="vertical" className="hidden h-5 sm:block" />
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="font-heading text-2xl font-semibold">Draft #{edition.id}</h1>
+          <StatusBadge status={edition.status} />
+          <span className="text-sm text-muted-foreground">{edition.issueDate}</span>
         </div>
       </div>
-      <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-        {edition.status === 'draft' && (
-          <>
-            <button type="button" onClick={save}>Save</button>
-            <button type="button" onClick={send}>Send via Resend</button>
-            <button type="button" onClick={del}>Delete</button>
-          </>
-        )}
+
+      <div className="space-y-2">
+        <Label htmlFor="subject">Subject</Label>
+        <Input
+          id="subject"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          disabled={!isDraft}
+          className="text-base"
+        />
       </div>
-      {msg && <p>{msg}</p>}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="body">Body (markdown)</Label>
+          <Textarea
+            id="body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            disabled={!isDraft}
+            className="min-h-[28rem] font-mono text-sm"
+          />
+        </div>
+        <Card className="flex flex-col">
+          <CardHeader className="pb-3">
+            <CardTitle className="font-heading text-base">Preview</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-auto">
+            <div className="prose-newsletter min-h-[26rem]">
+              <ReactMarkdown>{body}</ReactMarkdown>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {isDraft && (
+        <>
+          <Separator />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={save} disabled={busy}>
+              {busy ? <Loader2 className="animate-spin" /> : null}
+              Save
+            </Button>
+            <Button type="button" variant="secondary" onClick={send} disabled={busy}>
+              Send via Resend
+            </Button>
+            <Button type="button" variant="destructive" onClick={del} disabled={busy}>
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
+
+      {msg && (
+        <Alert variant={msgError ? 'destructive' : 'default'}>
+          <AlertDescription>{msg}</AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }

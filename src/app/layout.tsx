@@ -1,4 +1,19 @@
 import type { Metadata } from 'next';
+import { DM_Sans, Libre_Baskerville } from 'next/font/google';
+import { AppHeader } from '@/components/app-header';
+import { cn } from '@/lib/utils';
+import './globals.css';
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
+
+const libreBaskerville = Libre_Baskerville({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-heading-family',
+});
 
 export const metadata: Metadata = {
   title: 'Santa Fe Newsletter',
@@ -7,17 +22,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body style={{ fontFamily: 'system-ui, sans-serif', margin: 0, background: '#fafafa', color: '#111' }}>
-        <header style={{ borderBottom: '1px solid #ddd', padding: '12px 20px', background: '#fff' }}>
-          <strong>Santa Fe Newsletter</strong>
-          <nav style={{ display: 'inline-flex', gap: 16, marginLeft: 24, fontSize: 14 }}>
-            <a href="/admin">Generate</a>
-            <a href="/admin/drafts">Drafts</a>
-            <a href="/admin/guidance">Guidance</a>
-          </nav>
-        </header>
-        <main style={{ maxWidth: 900, margin: '0 auto', padding: 24 }}>{children}</main>
+    <html lang="en" className={cn('font-sans', dmSans.variable, libreBaskerville.variable)}>
+      <body className="min-h-screen">
+        <AppHeader />
+        <main className="mx-auto max-w-4xl px-6 py-8">{children}</main>
       </body>
     </html>
   );

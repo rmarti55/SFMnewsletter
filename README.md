@@ -36,9 +36,19 @@ Pages: Generate (readiness preview + draft), Drafts list/editor, Guidance editor
 | `SFM_API_BASE_URL` | no | default `https://santafeminutes.space` |
 | `OPENROUTER_API_KEY` | yes | LLM extract + synthesize |
 | `LLM_SMART_MODEL` | no | default `google/gemini-2.5-flash` |
-| `NEXT_PUBLIC_APP_URL` | no | OpenRouter `HTTP-Referer`; default `http://localhost:3000` |
-| `DATABASE_PATH` | no | default `./data/newsletter.db` |
+| `NEXT_PUBLIC_APP_URL` | no | OpenRouter `HTTP-Referer`; default `http://localhost:3000`. On Vercel set to your production URL. |
+| `DATABASE_PATH` | no | Local default `./data/newsletter.db`. On Vercel, auto-uses `/tmp/newsletter.db` (ephemeral per instance). |
 | `RESEND_API_KEY` / `ADMIN_EMAIL` | optional | Send button |
+
+## Vercel deployment
+
+Set these in the **sf-mnewsletter** project (Production environment):
+
+- `NEWSLETTER_EXPORT_API_KEY` — required
+- `OPENROUTER_API_KEY` — required for generate
+- `NEXT_PUBLIC_APP_URL` — e.g. `https://sf-mnewsletter.vercel.app`
+
+Redeploy after adding env vars. SQLite drafts on Vercel use `/tmp` and may not persist across cold starts.
 
 ## Pipeline
 

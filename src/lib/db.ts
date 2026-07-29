@@ -6,7 +6,9 @@ import type { NewsletterEdition } from './types';
 let db: Database.Database | null = null;
 
 function getDbPath(): string {
-  return process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'newsletter.db');
+  if (process.env.DATABASE_PATH) return process.env.DATABASE_PATH;
+  if (process.env.VERCEL) return '/tmp/newsletter.db';
+  return path.join(process.cwd(), 'data', 'newsletter.db');
 }
 
 export function getDb(): Database.Database {
