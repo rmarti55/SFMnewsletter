@@ -40,6 +40,20 @@ export interface NewsletterReadiness {
   recentWithExecutiveSummary: number;
   skippedNoSummary: number;
   skippedNoTranscriptRow: number;
+  skippedBreakdown: {
+    notEligibleCommittee: number;
+    eligibleNoVideo: number;
+    eligiblePending: number;
+    noSummary: number;
+  };
+  skippedMeetings: Array<{
+    eventId: number;
+    eventName: string;
+    categoryName: string | null;
+    meetingDate: string;
+    reason: 'not_eligible' | 'no_video' | 'pending' | 'no_summary';
+    transcriptStatus?: string | null;
+  }>;
 }
 
 export interface NewsletterCorpus {

@@ -8,6 +8,7 @@
     "start": "next start",
     "generate": "tsx src/cli/generate.ts",
     "smoke:corpus": "tsx scripts/smoke-corpus.ts",
+    "smoke:openrouter": "tsx scripts/smoke-openrouter.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
