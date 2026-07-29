@@ -1,0 +1,119 @@
+import Database from 'better-sqlite3';
+import path from 'path';
+import { existsSync, mkdirSync } from 'fs';
+import type { NewsletterEdition } from './types';
+
+let db: Database.Database | null = null;
+
+function getDbPath(): string {
+  return process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'newsletter.db');
+}
+
+export function getDb(): Database.Database {
+  if (db) return db;
+  const dbPath = getDbPath();
+  mkdirSync(path.dirname(dbPath), { recursive: true });
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS newsletter_editions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      issue_date TEXT NOT NULL,
+      subject TEXT,
+      body_markdown TEXT,
+      source_event_ids TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      model TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      sent_at TEXT
+    );
+  `);
+  return db;
+}
+
+function rowToEdition(row: Record<string, unknown>): NewsletterEdition {
+  return {
+    id: row.id as number,
+    issueDate: row.issue_date as string,
+    subject: (row.subject as string) ?? null,
+    bodyMarkdown: (row.body_markdown as string) ?? null,
+    sourceEventIds: (row.source_event_ids as string) ?? null,
+    status: row.status as 'draft' | 'sent',
+    model: (row.model as string) ?? null,
+    createdAt: row.created_at as string,
+    sentAt: (row.sent_at as string) ?? null,
+  };
+}
+
+export function insertDraft(input: {
+  issueDate: string;
+  subject: string;
+  bodyMarkdown: string;
+  sourceEventIds: number[];
+  model: string;
+}): NewsletterEdition {
+  const d = getDb();
+  const result = d
+    .prepare(
+      `INSERT INTO newsletter_editions (issue_date, subject, body_markdown, source_event_ids, status, model)
+       VALUES (?, ?, ?, ?, 'draft', ?)`,
+    )
+    .run(
+      input.issueDate,
+      input.subject,
+      input.bodyMarkdown,
+      JSON.stringify(input.sourceEventIds),
+      input.model,
+    );
+  return getDraftById(Number(result.lastInsertRowid))!;
+}
+
+export function listDrafts(): NewsletterEdition[] {
+  const rows = getDb()
+    .prepare(`SELECT * FROM newsletter_editions ORDER BY created_at DESC`)
+    .all() as Record<string, unknown>[];
+  return rows.map(rowToEdition);
+}
+
+export function getDraftById(id: number): NewsletterEdition | null {
+  const row = getDb().prepare(`SELECT * FROM newsletter_editions WHERE id = ?`).get(id) as
+    | Record<string, unknown>
+    | undefined;
+  return row ? rowToEdition(row) : null;
+}
+
+export function updateDraft(
+  id: number,
+  patch: { subject?: string; bodyMarkdown?: string },
+): NewsletterEdition | null {
+  const existing = getDraftById(id);
+  if (!existing || existing.status !== 'draft') return null;
+  getDb()
+    .prepare(`UPDATE newsletter_editions SET subject = ?, body_markdown = ? WHERE id = ?`)
+    .run(patch.subject ?? existing.subject, patch.bodyMarkdown ?? existing.bodyMarkdown, id);
+  return getDraftById(id);
+}
+
+export function deleteDraft(id: number): boolean {
+  const result = getDb().prepare(`DELETE FROM newsletter_editions WHERE id = ? AND status = 'draft'`).run(id);
+  return result.changes > 0;
+}
+
+export function markSent(id: number): NewsletterEdition | null {
+  getDb()
+    .prepare(`UPDATE newsletter_editions SET status = 'sent', sent_at = datetime('now') WHERE id = ?`)
+    .run(id);
+  return getDraftById(id);
+}
+
+export function resetDbForTests(): void {
+  if (db) {
+    db.close();
+    db = null;
+  }
+  const dbPath = getDbPath();
+  if (existsSync(dbPath)) {
+    const { unlinkSync } = require('fs') as typeof import('fs');
+    unlinkSync(dbPath);
+  }
+}

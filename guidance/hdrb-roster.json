@@ -1,0 +1,45 @@
+[
+  {
+    "canonicalName": "Cecilia Rios",
+    "role": "Chair",
+    "seat": "Historic Districts Business",
+    "aliases": ["Rios", "Member Rios", "Chair Rios"],
+    "active": true
+  },
+  {
+    "canonicalName": "John Bienvenu",
+    "role": "Vice-Chair",
+    "seat": "At-Large",
+    "aliases": ["Bienvenu", "Benvenuto", "Member Bienvenu", "Member Benvenuto", "Vice Chair Bienvenu", "Chair Bienvenu"],
+    "active": true
+  },
+  {
+    "canonicalName": "Joseph E. Simmons",
+    "displayName": "Joe Simmons",
+    "role": "Architect",
+    "seat": "Architect",
+    "aliases": ["Simmons", "Member Simmons", "Joe Simmons", "Joseph Simmons", "Mr. Simmons", "Manuel Simmons"],
+    "active": true
+  },
+  {
+    "canonicalName": "Jennifer Biedscheid",
+    "role": "Member",
+    "seat": "At-Large",
+    "aliases": ["Biedscheid", "Member Biedscheid", "Bishai", "Member Bishai", "Beachside", "Member Beachside"],
+    "active": true
+  },
+  {
+    "canonicalName": "Scott Cherry",
+    "role": "Member",
+    "seat": "Construction Industry",
+    "aliases": ["Cherry", "Member Cherry"],
+    "active": true
+  },
+  {
+    "canonicalName": "Mary Ellen Degnan",
+    "role": "Member",
+    "seat": "OSFA",
+    "aliases": ["Degnan", "Degnon", "Member Degnan", "Member Degnon", "Dignan", "Member Dignan"],
+    "active": true
+  }
+]
