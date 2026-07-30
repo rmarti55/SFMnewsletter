@@ -182,6 +182,18 @@ export function documentCorpusText(doc: ResearchDocument): string | null {
   return `[Document "${doc.title}" — upload a digest with citable facts; PDF binary stored at id ${doc.id}]`;
 }
 
+export type DocumentCorpusStatus = 'digest' | 'extracted' | 'needs_digest';
+
+export function documentCorpusStatus(doc: ResearchDocument): DocumentCorpusStatus {
+  if (doc.digestMarkdown?.trim()) return 'digest';
+  if (doc.extractedText?.trim()) return 'extracted';
+  return 'needs_digest';
+}
+
+export function isPdfFilename(filename: string): boolean {
+  return filename.toLowerCase().endsWith('.pdf');
+}
+
 export function readResearchFile(doc: ResearchDocument): Buffer | null {
   if (!doc.storagePath || !existsSync(doc.storagePath)) return null;
   return readFileSync(doc.storagePath);

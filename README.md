@@ -26,7 +26,15 @@ npm run dev
 # http://localhost:3000/admin
 ```
 
-Pages: Generate (readiness preview + draft), Drafts list/editor, Guidance editor.
+Pages: Generate (readiness preview + draft), Drafts list/editor, Guidance editor, **Research** (`/admin/research` — upload city studies by category for our-take citations).
+
+## City research library
+
+Upload water studies, LDC memos, and other city documents at **`/admin/research`**. Each upload gets a **category** (water, housing-supply, fee-in-lieu, …). During generate, the pipeline loads matching research **after** storyline extraction and injects it into synthesize as `CITY RESEARCH CORPUS` — for **our take** only, not quotes.
+
+- **Digest first:** Paste citable facts (study names, dates, numbers). PDFs require a digest in v1; the generator does not auto-parse PDF text.
+- **Legacy path:** Markdown in `guidance/research/{category}/` still merges when categories match.
+- **Storage (local):** Metadata + digest in SQLite (`research_documents`); files under `data/research/`. Override with `RESEARCH_STORAGE_PATH`.
 
 ## Env
 
@@ -38,6 +46,7 @@ Pages: Generate (readiness preview + draft), Drafts list/editor, Guidance editor
 | `LLM_SMART_MODEL` | no | default `google/gemini-2.5-flash` |
 | `NEXT_PUBLIC_APP_URL` | no | OpenRouter `HTTP-Referer`; default `http://localhost:3000`. On Vercel set to your production URL. |
 | `DATABASE_PATH` | no | Local default `./data/newsletter.db`. On Vercel, auto-uses `/tmp/newsletter.db` (ephemeral per instance). |
+| `RESEARCH_STORAGE_PATH` | no | Local default `./data/research`. On Vercel, auto-uses `/tmp/research` (ephemeral). Digests in SQLite are what generate reads. |
 | `RESEND_API_KEY` / `ADMIN_EMAIL` | optional | Send button |
 
 ## Vercel deployment
@@ -48,14 +57,15 @@ Set these in the **sf-mnewsletter** project (Production environment):
 - `OPENROUTER_API_KEY` — required for generate
 - `NEXT_PUBLIC_APP_URL` — e.g. `https://sf-mnewsletter.vercel.app`
 
-Redeploy after adding env vars. SQLite drafts on Vercel use `/tmp` and may not persist across cold starts.
+Redeploy after adding env vars. SQLite drafts and research uploads on Vercel use `/tmp` and **may not persist across cold starts** — uploaded PDF binaries are especially fragile. For durable prod uploads, plan a follow-up: **Vercel Blob** (files) + **Postgres/Neon** (metadata), or maintain digests locally and commit markdown under `guidance/research/`.
 
 ## Pipeline
 
 1. `GET /api/export/newsletter-corpus` on SFM
-2. Extract storylines per meeting (OpenRouter)
-3. Synthesize issue + quote/guidance guards
-4. Save SQLite draft
+2. Extract storylines per meeting (OpenRouter) — **editorial guidance only**, no research corpus
+3. Match storylines to research categories → build `CITY RESEARCH CORPUS` from SQLite uploads + legacy `guidance/research/`
+4. Synthesize issue + quote/guidance/research guards
+5. Save SQLite draft
 
 Editorial guidance lives in `guidance/editorial.md` (exported from SFM `newsletter_settings`).
 

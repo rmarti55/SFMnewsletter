@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Download, Loader2, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,27 @@ type ResearchDoc = {
   createdAt: string;
   updatedAt: string;
 };
+
+function corpusStatus(doc: ResearchDoc): 'digest' | 'extracted' | 'needs_digest' {
+  if (doc.digestMarkdown?.trim()) return 'digest';
+  if (doc.extractedText?.trim()) return 'extracted';
+  return 'needs_digest';
+}
+
+function statusLabel(status: ReturnType<typeof corpusStatus>): string {
+  switch (status) {
+    case 'digest':
+      return 'Ready (digest)';
+    case 'extracted':
+      return 'Ready (extracted text)';
+    default:
+      return 'Needs digest';
+  }
+}
+
+function isPdf(name: string): boolean {
+  return name.toLowerCase().endsWith('.pdf');
+}
 
 export default function ResearchPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,19 +71,25 @@ export default function ResearchPage() {
       const data = await res.json();
       setCategories(data.categories ?? []);
       setDocuments(data.documents ?? []);
-      if (data.categories?.length && !category) setCategory(data.categories[0].id);
     } finally {
       setLoading(false);
     }
-  }, [category]);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  const pdfWithoutDigest = file && isPdf(file.name) && !digestMarkdown.trim();
+
   async function upload(e: React.FormEvent) {
     e.preventDefault();
     if (!file || !title.trim()) return;
+    if (pdfWithoutDigest) {
+      setMsgError(true);
+      setMsg('PDF uploads need a digest with citable facts — the generator cannot read PDF binaries.');
+      return;
+    }
     setUploading(true);
     setMsg('');
     const form = new FormData();
@@ -122,7 +149,8 @@ export default function ResearchPage() {
         <CardHeader>
           <CardTitle className="font-heading text-xl">Upload document</CardTitle>
           <CardDescription>
-            PDF, Markdown, or text. Add a digest with citable facts — the generator uses digest first, then extracted text for .md/.txt.
+            PDF, Markdown, or text. Paste a digest with study names, dates, and citable facts — generate uses digest first,
+            then auto-extracted text for .md/.txt.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -165,7 +193,9 @@ export default function ResearchPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="research-digest">Digest (optional, recommended for PDFs)</Label>
+              <Label htmlFor="research-digest">
+                Digest {file && isPdf(file.name) ? '(required for PDF)' : '(recommended for PDFs)'}
+              </Label>
               <Textarea
                 id="research-digest"
                 value={digestMarkdown}
@@ -173,8 +203,13 @@ export default function ResearchPage() {
                 className="min-h-32 font-mono text-sm"
                 placeholder="- Study name, date, URL&#10;- Bullet facts the newsletter may cite in our-take…"
               />
+              {pdfWithoutDigest && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  PDFs require a digest — the pipeline does not auto-parse PDF text in v1.
+                </p>
+              )}
             </div>
-            <Button type="submit" disabled={uploading || !file || !title.trim()}>
+            <Button type="submit" disabled={uploading || !file || !title.trim() || Boolean(pdfWithoutDigest)}>
               {uploading ? (
                 <>
                   <Loader2 className="animate-spin" />
@@ -200,78 +235,90 @@ export default function ResearchPage() {
               Loading…
             </div>
           ) : documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No uploads yet — add water studies, AHTF reports, etc.</p>
+            <p className="text-sm text-muted-foreground">
+              No uploads yet. Start with a water study: upload the PDF for your records, paste citable facts in the
+              digest, and set category to <strong>Water &amp; permits</strong>.
+            </p>
           ) : (
             <ul className="divide-y divide-border">
-              {documents.map((doc) => (
-                <li key={doc.id} className="space-y-3 py-4 first:pt-0 last:pb-0">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{doc.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {doc.sourceFilename} · {new Date(doc.createdAt).toLocaleDateString()}
-                      </p>
-                      <Badge variant="secondary" className="mt-2">
-                        {categoryLabel(doc.category)}
-                      </Badge>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditingId(doc.id);
-                          setEditDigest(doc.digestMarkdown ?? '');
-                          setEditCategory(doc.category);
-                        }}
-                      >
-                        Edit digest
-                      </Button>
-                      <Button type="button" variant="outline" size="sm" onClick={() => removeDoc(doc.id)}>
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {editingId === doc.id && (
-                    <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
-                      <div className="grid gap-2 sm:max-w-xs">
-                        <Label>Category</Label>
-                        <select
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                        >
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
+              {documents.map((doc) => {
+                const status = corpusStatus(doc);
+                return (
+                  <li key={doc.id} className="space-y-3 py-4 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{doc.title}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {doc.sourceFilename} · {new Date(doc.createdAt).toLocaleDateString()}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="secondary">{categoryLabel(doc.category)}</Badge>
+                          <Badge variant={status === 'needs_digest' ? 'outline' : 'default'}>{statusLabel(status)}</Badge>
+                        </div>
                       </div>
-                      <Textarea
-                        value={editDigest}
-                        onChange={(e) => setEditDigest(e.target.value)}
-                        className="min-h-40 font-mono text-sm"
-                        placeholder="Citable facts for the newsletter…"
-                      />
                       <div className="flex gap-2">
-                        <Button type="button" size="sm" onClick={() => saveDoc(doc.id)} disabled={savingId === doc.id}>
-                          {savingId === doc.id ? <Loader2 className="animate-spin" /> : 'Save'}
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <a href={`/api/research/${doc.id}/file`} download>
+                            <Download className="size-4" />
+                          </a>
                         </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                          Cancel
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingId(doc.id);
+                            setEditDigest(doc.digestMarkdown ?? '');
+                            setEditCategory(doc.category);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeDoc(doc.id)}>
+                          <Trash2 className="size-4" />
                         </Button>
                       </div>
                     </div>
-                  )}
-                  {!doc.digestMarkdown && !doc.extractedText && (
-                    <p className="text-xs text-amber-700 dark:text-amber-400">
-                      No digest yet — add citable facts so generate can use this doc.
-                    </p>
-                  )}
-                </li>
-              ))}
+                    {editingId === doc.id && (
+                      <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
+                        <div className="grid gap-2 sm:max-w-xs">
+                          <Label>Category</Label>
+                          <select
+                            value={editCategory}
+                            onChange={(e) => setEditCategory(e.target.value)}
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                          >
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <Textarea
+                          value={editDigest}
+                          onChange={(e) => setEditDigest(e.target.value)}
+                          className="min-h-40 font-mono text-sm"
+                          placeholder="Citable facts for the newsletter…"
+                        />
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" onClick={() => saveDoc(doc.id)} disabled={savingId === doc.id}>
+                            {savingId === doc.id ? <Loader2 className="animate-spin" /> : 'Save'}
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {status === 'needs_digest' && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Add a digest with citable facts — generate will not use this doc until you do.
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

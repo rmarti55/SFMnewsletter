@@ -114,8 +114,13 @@ export function resetDbForTests(): void {
     db = null;
   }
   const dbPath = getDbPath();
-  if (existsSync(dbPath)) {
-    const { unlinkSync } = require('fs') as typeof import('fs');
-    unlinkSync(dbPath);
+  const { unlinkSync, rmSync, existsSync: exists } = require('fs') as typeof import('fs');
+  for (const suffix of ['', '-wal', '-shm']) {
+    const p = dbPath + suffix;
+    if (exists(p)) unlinkSync(p);
+  }
+  const researchDir = process.env.RESEARCH_STORAGE_PATH;
+  if (researchDir && exists(researchDir)) {
+    rmSync(researchDir, { recursive: true, force: true });
   }
 }

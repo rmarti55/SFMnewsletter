@@ -59,8 +59,7 @@ export function loadCityResearchForStorylines(
 }
 
 export function loadFullGuidance(opts?: { research?: string | null }): string | null {
-  const editorialPath = path.join(process.cwd(), 'guidance', 'editorial.md');
-  const editorial = existsSync(editorialPath) ? readFileSync(editorialPath, 'utf8').trim() : '';
+  const editorial = readEditorialMarkdown();
   const research = opts?.research !== undefined ? opts.research : loadCityResearch();
 
   if (!editorial && !research) return null;
@@ -74,12 +73,13 @@ export function loadFullGuidance(opts?: { research?: string | null }): string | 
   return blocks.join('\n\n---\n\n').trim() || null;
 }
 
-export function loadEditorialGuidance(): string | null {
+function readEditorialMarkdown(): string {
   const editorialPath = path.join(process.cwd(), 'guidance', 'editorial.md');
-  if (!existsSync(editorialPath)) return null;
-  const g = readFileSync(editorialPath, 'utf8').trim();
-  return g || null;
+  if (!existsSync(editorialPath)) return '';
+  return readFileSync(editorialPath, 'utf8').trim();
 }
 
-// Re-export save/list from guidance file for API compatibility
-export { saveEditorialGuidance, listGuidanceVersions } from './guidance-store';
+export function loadEditorialGuidance(): string | null {
+  const g = readEditorialMarkdown();
+  return g || null;
+}
