@@ -1,17 +1,20 @@
 import { rewriteIsoDatesToUs } from './datetime';
 import {
+  buildGuidanceLeakAllowedSource,
   buildSourcesBlock,
   extractGuidanceFingerprints,
   findFabricatedQuotes,
   findForbiddenFramings,
   findGuidanceLeaks,
+  findResearchTopicLeaks,
   stripFabricatedQuotes,
   stripGuidanceLeakParagraphs,
 } from './guards';
-import { loadEditorialGuidance } from './guidance';
+import { loadCityResearch, loadEditorialGuidance, loadFullGuidance, loadCityResearchForStorylines } from './guidance';
 import {
   extractMeetingStorylines,
   buildSynthesisSourceText,
+  buildTranscriptHaystack,
   mapWithConcurrency,
   MAX_RECENT_MEETINGS,
   STORYLINE_CONCURRENCY,
@@ -32,10 +35,12 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
   const lookbackDays = params.lookbackDays ?? 7;
   const lookaheadDays = params.lookaheadDays ?? 7;
 
-  const [corpus, guidance] = await Promise.all([
+  const [corpus, editorial] = await Promise.all([
     fetchNewsletterCorpus({ issueDate: params.issueDate, lookbackDays, lookaheadDays }),
     Promise.resolve(loadEditorialGuidance()),
   ]);
+
+  const guidanceForExtract = loadFullGuidance({ research: null }) ?? editorial;
 
   const { recent, upcoming, readiness } = corpus;
 
@@ -45,23 +50,25 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
 
   const recentCapped = recent.slice(0, MAX_RECENT_MEETINGS);
   const storylineSets = await mapWithConcurrency(recentCapped, STORYLINE_CONCURRENCY, (r) =>
-    extractMeetingStorylines(r, guidance),
+    extractMeetingStorylines(r, guidanceForExtract),
   );
   const storylines = resolveStorylineNames(
     storylineSets.flat().sort((a, b) => b.significance - a.significance),
     new Map(recentCapped.map((r) => [r.eventId, r])),
   );
 
+  const research = loadCityResearchForStorylines(storylines);
+  const guidance = loadFullGuidance({ research: research ?? null }) ?? editorial;
+
   console.log(
     `[generate] ${recentCapped.length} meetings → ${storylines.length} storylines [${[...new Set(storylines.map((s) => s.eventId))].join(', ')}]`,
   );
 
-  const sourceUnion = recentCapped
-    .map((r) => r.cleanedTranscript ?? r.speakers.map((s) => s.text).join('\n'))
-    .join('\n\n');
+  const sourceUnion = recentCapped.map((r) => buildTranscriptHaystack(r)).join('\n\n');
 
   const meetingFactSurface = [buildSynthesisSourceText(storylines, upcoming), sourceUnion].join('\n\n');
-  const guidanceFingerprints = extractGuidanceFingerprints(guidance ?? '');
+  const editorialFingerprints = extractGuidanceFingerprints(editorial ?? '');
+  const allowedSource = buildGuidanceLeakAllowedSource(meetingFactSurface, research, storylines);
 
   let synth = await runSynthesis(storylines, upcoming, guidance);
   let body = synth.body.trim();
@@ -79,18 +86,24 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
     if (fabricated.length > 0) body = stripFabricatedQuotes(body, fabricated);
   }
 
-  let guidanceLeaks = findGuidanceLeaks(body, guidanceFingerprints, meetingFactSurface);
-  if (guidanceLeaks.length > 0) {
-    console.warn(`[generate] ${guidanceLeaks.length} guidance leak(s) — regenerating`);
+  const forbiddenFacts = [
+    ...findGuidanceLeaks(body, editorialFingerprints, allowedSource),
+    ...findResearchTopicLeaks(body, research, storylines),
+  ];
+  if (forbiddenFacts.length > 0) {
+    console.warn(`[generate] ${forbiddenFacts.length} guidance/research leak(s) — regenerating`);
     const retry = await runSynthesis(storylines, upcoming, guidance, {
-      forbiddenGuidanceFacts: guidanceLeaks,
+      forbiddenGuidanceFacts: forbiddenFacts,
     });
     if (retry.body.trim()) {
       synth = retry;
       body = retry.body.trim();
     }
-    guidanceLeaks = findGuidanceLeaks(body, guidanceFingerprints, meetingFactSurface);
-    if (guidanceLeaks.length > 0) body = stripGuidanceLeakParagraphs(body, guidanceLeaks);
+    const stillLeaked = [
+      ...findGuidanceLeaks(body, editorialFingerprints, allowedSource),
+      ...findResearchTopicLeaks(body, research, storylines),
+    ];
+    if (stillLeaked.length > 0) body = stripGuidanceLeakParagraphs(body, stillLeaked);
   }
 
   let forbiddenFramings = findForbiddenFramings(body);

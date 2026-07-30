@@ -10,6 +10,8 @@ import {
   stripGuidanceLeakParagraphs,
   normalizeGuidanceFingerprint,
   extractGuidanceFingerprints,
+  dropPublicCommentStorylines,
+  isPublicCommentStoryline,
 } from '../src/lib/guards';
 
 const transcript = `Chair Faulkner called the meeting to order.
@@ -103,5 +105,24 @@ describe('findForbiddenFramings', () => {
     expect(
       findForbiddenFramings('Another fee hike on a pipeline that already choked supply.'),
     ).toEqual([]);
+  });
+});
+
+describe('dropPublicCommentStorylines', () => {
+  it('flags public comment headline patterns', () => {
+    expect(
+      isPublicCommentStoryline({
+        eventId: 1,
+        eventName: 'QOL',
+        committee: 'QOL',
+        meetingDate: '2026-07-22',
+        headline: 'Longtime resident opposes residential permits',
+        whatHappened: 'Public comment period.',
+        whyItMatters: 'None.',
+        people: [],
+        quotes: [],
+        significance: 50,
+      }),
+    ).toBe(true);
   });
 });

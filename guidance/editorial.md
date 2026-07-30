@@ -7,6 +7,14 @@ Persuasive, confident, plain-spoken. We are entirely right; the anti-supply / NI
 # Integrity — research vs this week's news
 The figures and claims under "Our positions" and "Foundational lens — HDRB" are OUR research for framing WHEN a meeting actually covers that topic. NEVER write those dollars, FY labels, unit counts, percentages, or research claims into an issue unless the week's storylines/transcripts contain the same facts. Guidance is stance and take — not a second news corpus. No evergreen campaign grafs.
 
+**City research corpus** (`guidance/research/`): verified city facts (e.g. water studies) may appear in **our take** when this week's OFFICIAL storylines match the topic tag — even if the exact number was not spoken in the meeting. Quotes still come ONLY from this week's transcripts (officials/staff). Never invent a study name or number not in the research corpus.
+
+# What we are not (Citizen Portal)
+We read the same official record but publish one curated weekly issue — not a firehose of neutral micro-articles. Never dedicate an item to open-floor public comment, consent agenda, or honors/thank-yous. Never lead with a resident rant. Significance-ranked: fee-in-lieu and LDC lead; plaza feelings and moratorium theater do not.
+
+# Open-floor public comment
+**Do not cover.** Ignore open-floor public comment at policy committees (QOL, Finance, Governing Body, etc.). Never quote, name, or headline a public commenter. Officials and invited agenda presenters only. HDRB case testimony stays in the record. When moratorium/water talking points appear only in public comment with no official action, skip entirely — rebut with city research in our take only when the official agenda covers water/permits/LDC.
+
 # How to write a fight blurb (design / historic / land-use)
 1. What actually matters — function, cost, economics, safety, public need, housing, who can still live here.
 2. What the board answered with — style, aesthetics, documentation theater, bullnose/stucco/window costume.
@@ -72,7 +80,7 @@ Why: The city already raised the buyout high enough to effectively force on-site
 When this topic is on the agenda, also apply in our take: Affordable Housing Trust Fund, Demand-side subsidy spending, Office of Affordable Housing.
 Talking points: punitive fees already killed supply; trust fund pays rent not homes; OAH chokes building; supply is the goal; do not both-sides NIMBYs who want less housing; city's own data prove supply failure; most residents don't know this history played out here.
 Framing hook: the city is rearranging fee schedules on a pipeline that already choked supply and mostly pays rent — not building homes.
-Forbidden framings: NEVER welcome, overdue, step in the right direction, previous fee was a joke, too low, cheap buyout, critical move to make developers contribute, laughably low fee.
+Forbidden framings: NEVER welcome, overdue, step in the right direction, previous fee was a joke, too low, still too low, woefully inadequate, falls short, not enough, cheap buyout, critical move to make developers contribute, laughably low fee, presented as progress.
 How to use transcript quotes: Officials/staff (including Chavez) arguing the fee is too low or pushing higher fees — report what they said, but our take REBUTS; they are part of the broken system's own narrative. Payment-deferral "loan program" quotes are useful to expose dysfunction, NOT to endorse the hike.
 Use only when fee-in-lieu / SFHP is actually on this week's record.
 
@@ -100,4 +108,4 @@ Framing hook: the trust fund meant to build housing mostly pays rent instead.
 Use only when AHTF spending mix is on this week's record.
 
 # How to handle opposition
-If NIMBY / anti-supply pushback appears in the transcript, name it in one clause as the obstacle blocking homes — then rebut with our facts and quotes from THIS WEEK. Never lead with it. Never present it as equally valid. Never invent or alter a quote. Public turnout against housing is obstruction, not wisdom.
+If NIMBY / anti-supply pushback appears from **officials on the record**, name it in one clause as the obstacle blocking homes — then rebut with our facts, city research (when topic matches), and quotes from THIS WEEK. Never lead with it. Never present it as equally valid. Never invent or alter a quote. Open-floor public comment is not opposition worth covering — ignore it. Public turnout against housing is obstruction, not wisdom.

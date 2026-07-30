@@ -1,3 +1,5 @@
+import type { Storyline } from './types';
+
 const MIN_QUOTE_CHARS = 12;
 
 export const normalizeForMatch = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -147,7 +149,7 @@ export function buildSourcesBlock(sources: { id: number; name: string; baseUrl: 
   return `\n\n---\n\n**Sources**\n${links}`;
 }
 
-/** Phrases that indicate the model welcomed a fee hike — contradicts editorial stance. */
+/** Phrases that indicate the model welcomed a fee hike or used "fee too low" framing — contradicts editorial stance. */
 export const FEE_HIKE_FORBIDDEN_FRAMINGS = [
   'welcome, if overdue',
   'welcome change',
@@ -157,11 +159,66 @@ export const FEE_HIKE_FORBIDDEN_FRAMINGS = [
   'fee was a joke',
   'laughably low',
   'too low to matter',
+  'still too low',
+  'woefully inadequate',
+  'falls short',
+  'still falls short',
+  'not enough to build',
   'cheap buyout',
   'critical move to make developers',
+  'presented as progress',
 ];
 
 export function findForbiddenFramings(body: string, phrases = FEE_HIKE_FORBIDDEN_FRAMINGS): string[] {
   const norm = normalizeForMatch(body);
   return phrases.filter((p) => norm.includes(normalizeForMatch(p)));
+}
+
+const PUBLIC_COMMENT_HEADLINE =
+  /\b(public commenter|resident demands|longtime resident|long-time resident|activist|opposes residential permits|housing freeze|moratorium|honors outgoing|consent agenda|amended agenda|myab co-chairs|residents urge|residents tell)\b/i;
+
+export function isPublicCommentStoryline(storyline: Storyline): boolean {
+  const blob = `${storyline.headline} ${storyline.whatHappened} ${storyline.whyItMatters}`;
+  if (PUBLIC_COMMENT_HEADLINE.test(blob)) return true;
+  if (/\bjim heath\b/i.test(blob)) return true;
+  if (/\bchandler moore\b/i.test(blob)) return true;
+  if (/\bpublic comment\b/i.test(blob)) return true;
+  if (/\bjeffrey haynes\b/i.test(blob)) return true;
+  return false;
+}
+
+export function dropPublicCommentStorylines(storylines: Storyline[]): Storyline[] {
+  return storylines.filter((s) => !isPublicCommentStoryline(s));
+}
+
+import { getActiveResearchCategories } from './research-categories';
+
+const RESEARCH_TOPIC_RE =
+  /\b(water|permits?|permitting|ldc|land development code|general plan|moratorium|housing permit|water supply|water study|santa fe forward)\b/i;
+
+export function isResearchTopicActive(storylines: Storyline[]): boolean {
+  if (storylines.length === 0) return false;
+  const blob = storylines.map((s) => `${s.headline} ${s.whatHappened} ${s.whyItMatters}`).join(' ');
+  if (RESEARCH_TOPIC_RE.test(blob)) return true;
+  return getActiveResearchCategories(storylines).some((c) => c !== 'general');
+}
+
+export function buildGuidanceLeakAllowedSource(
+  meetingFactSurface: string,
+  research: string | null,
+  storylines: Storyline[],
+): string {
+  let allowed = meetingFactSurface;
+  if (research?.trim() && isResearchTopicActive(storylines)) {
+    allowed += `\n\n${research}`;
+  }
+  return allowed;
+}
+
+export function findResearchTopicLeaks(body: string, research: string | null, storylines: Storyline[]): string[] {
+  if (!research?.trim()) return [];
+  const fingerprints = extractGuidanceFingerprints(research);
+  if (fingerprints.length === 0) return [];
+  if (isResearchTopicActive(storylines)) return [];
+  return fingerprints.filter((fp) => textContainsGuidanceFingerprint(body, fp));
 }
