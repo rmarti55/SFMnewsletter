@@ -6,7 +6,7 @@ import {
   deleteResearchDocument,
   documentCorpusText,
   initResearchSchema,
-} from '../src/lib/research-db';
+} from '../src/lib/storage';
 import { buildResearchCorpus, loadCityResearchForStorylines } from '../src/lib/research-corpus';
 import { resetDbForTests } from '../src/lib/db';
 
@@ -25,13 +25,13 @@ describe('research categories', () => {
 });
 
 describe('research db + corpus', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetDbForTests();
-    initResearchSchema();
+    await initResearchSchema();
   });
 
-  it('stores upload and builds corpus by category', () => {
-    insertResearchDocument({
+  it('stores upload and builds corpus by category', async () => {
+    await insertResearchDocument({
       title: 'Water Study 2024',
       category: 'water',
       sourceFilename: 'water.md',
@@ -39,7 +39,7 @@ describe('research db + corpus', () => {
       fileBuffer: Buffer.from('# Facts\nOutdoor irrigation dominates demand.'),
       digestMarkdown: '- Outdoor irrigation is the main water lever.',
     });
-    insertResearchDocument({
+    await insertResearchDocument({
       title: 'Plaza vibes',
       category: 'general',
       sourceFilename: 'plaza.txt',
@@ -48,11 +48,11 @@ describe('research db + corpus', () => {
       digestMarkdown: 'Not relevant',
     });
 
-    const waterOnly = buildResearchCorpus(['water']);
+    const waterOnly = await buildResearchCorpus(['water']);
     expect(waterOnly).toContain('Outdoor irrigation is the main water lever');
     expect(waterOnly).not.toContain('Plaza vibes');
 
-    insertResearchDocument({
+    await insertResearchDocument({
       title: 'Housing code notes',
       category: 'housing-supply',
       sourceFilename: 'ldc.md',
@@ -61,7 +61,7 @@ describe('research db + corpus', () => {
       digestMarkdown: '- Phase 2 LDC targets housing supply.',
     });
 
-    const forLdc = loadCityResearchForStorylines([
+    const forLdc = await loadCityResearchForStorylines([
       {
         headline: 'Code overhaul',
         whatHappened: 'LDC phase 2 presented.',
@@ -71,8 +71,8 @@ describe('research db + corpus', () => {
     expect(forLdc).toContain('Phase 2 LDC targets housing supply');
   });
 
-  it('prefers digest over extracted text', () => {
-    const doc = insertResearchDocument({
+  it('prefers digest over extracted text', async () => {
+    const doc = await insertResearchDocument({
       title: 'Test',
       category: 'water',
       sourceFilename: 'a.md',
@@ -81,12 +81,25 @@ describe('research db + corpus', () => {
       digestMarkdown: 'curated digest',
     });
     expect(documentCorpusText(doc)).toBe('curated digest');
-    deleteResearchDocument(doc.id);
-    expect(listResearchDocuments()).toHaveLength(0);
+    await deleteResearchDocument(doc.id);
+    expect(await listResearchDocuments()).toHaveLength(0);
   });
 
-  it('pipeline includes category-matched docs only', () => {
-    insertResearchDocument({
+  it('returns null corpus text when pdf has no digest', async () => {
+    await expect(
+      insertResearchDocument({
+        title: 'Raw PDF',
+        category: 'water',
+        sourceFilename: 'study.pdf',
+        mimeType: 'application/pdf',
+        fileBuffer: Buffer.from('%PDF'),
+        digestMarkdown: null,
+      }),
+    ).rejects.toThrow(/digest/i);
+  });
+
+  it('pipeline includes category-matched docs only', async () => {
+    await insertResearchDocument({
       title: 'Water only',
       category: 'water',
       sourceFilename: 'w.md',
@@ -94,7 +107,7 @@ describe('research db + corpus', () => {
       fileBuffer: Buffer.from('x'),
       digestMarkdown: 'UNIQUE_WATER_FACT_12345',
     });
-    insertResearchDocument({
+    await insertResearchDocument({
       title: 'Housing LDC',
       category: 'housing-supply',
       sourceFilename: 'h.md',
@@ -102,7 +115,7 @@ describe('research db + corpus', () => {
       fileBuffer: Buffer.from('x'),
       digestMarkdown: 'UNIQUE_HOUSING_FACT_abcde',
     });
-    insertResearchDocument({
+    await insertResearchDocument({
       title: 'Fee study',
       category: 'fee-in-lieu',
       sourceFilename: 'f.md',
@@ -111,7 +124,7 @@ describe('research db + corpus', () => {
       digestMarkdown: 'UNIQUE_FEE_FACT_67890',
     });
 
-    const ldcCorpus = loadCityResearchForStorylines([
+    const ldcCorpus = await loadCityResearchForStorylines([
       {
         headline: 'LDC phase 2',
         whatHappened: 'Land development code update presented.',
@@ -122,7 +135,7 @@ describe('research db + corpus', () => {
     expect(ldcCorpus).not.toContain('UNIQUE_FEE_FACT_67890');
     expect(ldcCorpus).not.toContain('UNIQUE_WATER_FACT_12345');
 
-    const waterCorpus = loadCityResearchForStorylines([
+    const waterCorpus = await loadCityResearchForStorylines([
       {
         headline: 'Permit moratorium debate',
         whatHappened: 'Council discussed water supply before permitting.',
@@ -131,7 +144,7 @@ describe('research db + corpus', () => {
     ]);
     expect(waterCorpus).toContain('UNIQUE_WATER_FACT_12345');
 
-    const feeCorpus = loadCityResearchForStorylines([
+    const feeCorpus = await loadCityResearchForStorylines([
       {
         headline: 'Fee-in-lieu hike',
         whatHappened: 'Finance committee advanced SFHP bill.',
@@ -142,8 +155,8 @@ describe('research db + corpus', () => {
     expect(feeCorpus).not.toContain('UNIQUE_WATER_FACT_12345');
   });
 
-  it('returns null when no storylines (no research leak on empty weeks)', () => {
-    insertResearchDocument({
+  it('returns null when no storylines (no research leak on empty weeks)', async () => {
+    await insertResearchDocument({
       title: 'Water only',
       category: 'water',
       sourceFilename: 'w.md',
@@ -151,6 +164,6 @@ describe('research db + corpus', () => {
       fileBuffer: Buffer.from('x'),
       digestMarkdown: 'SHOULD_NOT_APPEAR_EMPTY_WEEK',
     });
-    expect(loadCityResearchForStorylines([])).toBeNull();
+    expect(await loadCityResearchForStorylines([])).toBeNull();
   });
 });

@@ -10,11 +10,14 @@
     "smoke:corpus": "tsx scripts/smoke-corpus.ts",
     "smoke:openrouter": "tsx scripts/smoke-openrouter.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "migrate:postgres": "tsx scripts/migrate-postgres.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/typography": "^0.5.20",
+    "@vercel/blob": "^2.6.1",
     "better-sqlite3": "^11.9.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

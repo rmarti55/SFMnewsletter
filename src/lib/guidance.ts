@@ -5,4 +5,4 @@ export {
   loadFullGuidance,
   buildResearchCorpus,
 } from './research-corpus';
-export { saveEditorialGuidance, listGuidanceVersions } from './guidance-store';
+export { saveEditorialGuidance, listGuidanceVersionsFromStorage as listGuidanceVersions } from './storage';

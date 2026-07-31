@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 export default function GuidancePage() {
   const [markdown, setMarkdown] = useState('');
+  const [readOnly, setReadOnly] = useState(false);
   const [msg, setMsg] = useState('');
   const [msgError, setMsgError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -18,7 +19,10 @@ export default function GuidancePage() {
   useEffect(() => {
     fetch('/api/guidance')
       .then((r) => r.json())
-      .then((d) => setMarkdown(d.guidance ?? ''))
+      .then((d) => {
+        setMarkdown(d.guidance ?? '');
+        setReadOnly(Boolean(d.readOnly));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -30,8 +34,9 @@ export default function GuidancePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ guidance: markdown }),
     });
+    const data = await res.json().catch(() => ({}));
     setMsgError(!res.ok);
-    setMsg(res.ok ? 'Saved (prior version archived).' : 'Save failed.');
+    setMsg(res.ok ? 'Saved (prior version archived).' : data.error || 'Save failed.');
     setSaving(false);
   }
 
@@ -41,6 +46,15 @@ export default function GuidancePage() {
         title="Editorial guidance"
         description="Injected into extract + synthesize prompts every generate."
       />
+
+      {readOnly && (
+        <Alert>
+          <AlertDescription>
+            Guidance is read-only here without Postgres storage. Edit <code className="text-sm">guidance/editorial.md</code>{' '}
+            in git and redeploy, or configure DATABASE_URL on Vercel.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -57,11 +71,12 @@ export default function GuidancePage() {
             <Textarea
               value={markdown}
               onChange={(e) => setMarkdown(e.target.value)}
+              readOnly={readOnly}
               className="min-h-[32rem] font-mono text-sm"
               placeholder="Enter editorial guidance in markdown…"
             />
           )}
-          <Button type="button" onClick={save} disabled={loading || saving}>
+          <Button type="button" onClick={save} disabled={loading || saving || readOnly}>
             {saving ? (
               <>
                 <Loader2 className="animate-spin" />

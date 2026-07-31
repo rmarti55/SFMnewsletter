@@ -74,9 +74,9 @@ describe('generateNewsletterDraft skip reasons', () => {
       }),
     }));
     vi.doMock('../src/lib/guidance', () => ({
-      loadEditorialGuidance: () => null,
-      loadFullGuidance: () => null,
-      loadCityResearchForStorylines: () => null,
+      loadEditorialGuidance: vi.fn().mockResolvedValue(null),
+      loadFullGuidance: vi.fn().mockResolvedValue(null),
+      loadCityResearchForStorylines: vi.fn().mockResolvedValue(null),
     }));
 
     const { generateNewsletterDraft } = await import('../src/lib/generate-draft');
@@ -125,9 +125,9 @@ describe('generateNewsletterDraft skip reasons', () => {
       }),
     }));
     vi.doMock('../src/lib/guidance', () => ({
-      loadEditorialGuidance: () => null,
-      loadFullGuidance: () => null,
-      loadCityResearchForStorylines: () => null,
+      loadEditorialGuidance: vi.fn().mockResolvedValue(null),
+      loadFullGuidance: vi.fn().mockResolvedValue(null),
+      loadCityResearchForStorylines: vi.fn().mockResolvedValue(null),
     }));
     vi.doMock('../src/lib/extract-storylines', () => ({
       extractMeetingStorylines: vi.fn().mockResolvedValue([
@@ -157,7 +157,7 @@ describe('generateNewsletterDraft skip reasons', () => {
     vi.doMock('../src/lib/synthesize', () => ({
       runSynthesis: vi.fn().mockResolvedValue({ subject: '', body: '   ', model: 'test-model' }),
     }));
-    vi.doMock('../src/lib/db', () => ({
+    vi.doMock('../src/lib/storage', () => ({
       insertDraft: vi.fn(),
     }));
 

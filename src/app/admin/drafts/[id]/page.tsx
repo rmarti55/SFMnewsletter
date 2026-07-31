@@ -27,20 +27,34 @@ export default function DraftEditorPage() {
   const router = useRouter();
   const id = Number(params.id);
   const [edition, setEdition] = useState<Edition | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [msg, setMsg] = useState('');
   const [msgError, setMsgError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError('');
     fetch(`/api/drafts/${id}`)
-      .then((r) => r.json())
-      .then((d) => {
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) {
+          setLoadError(d.error || 'Draft not found (may have been lost on redeploy).');
+          setEdition(null);
+          return;
+        }
         setEdition(d.edition);
         setSubject(d.edition?.subject ?? '');
         setBody(d.edition?.bodyMarkdown ?? '');
-      });
+      })
+      .catch(() => {
+        setLoadError('Failed to load draft.');
+        setEdition(null);
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
   async function save() {
@@ -73,11 +87,24 @@ export default function DraftEditorPage() {
     setBusy(false);
   }
 
-  if (!edition) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
         <Loader2 className="mr-2 size-5 animate-spin" />
         Loading draft…
+      </div>
+    );
+  }
+
+  if (!edition) {
+    return (
+      <div className="space-y-4 py-12">
+        <Alert variant="destructive">
+          <AlertDescription>{loadError || 'Draft not found.'}</AlertDescription>
+        </Alert>
+        <Button variant="outline" asChild>
+          <Link href="/admin/drafts">Back to drafts</Link>
+        </Button>
       </div>
     );
   }

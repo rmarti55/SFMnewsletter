@@ -6,6 +6,7 @@ import { getTodayInDenver } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+export const runtime = 'nodejs';
 
 function buildGenerateResponse(result: Awaited<ReturnType<typeof generateNewsletterDraft>>) {
   const payload = {

@@ -47,7 +47,9 @@ let db: Database.Database | null = null;
 
 function getDbPath(): string {
   if (process.env.DATABASE_PATH) return process.env.DATABASE_PATH;
-  if (process.env.VERCEL) return '/tmp/newsletter.db';
+  if (process.env.VERCEL) {
+    throw new Error('DATABASE_URL is required on Vercel — configure Neon Postgres');
+  }
   return path.join(process.cwd(), 'data', 'newsletter.db');
 }
 

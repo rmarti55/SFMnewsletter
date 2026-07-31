@@ -21,7 +21,7 @@ import {
 } from './extract-storylines';
 import { runSynthesis } from './synthesize';
 import { fetchNewsletterCorpus } from './sfm-client';
-import { insertDraft } from './db';
+import { insertDraft } from './storage';
 import { resolveStorylineNames } from './hdrb';
 import type { GenerateResult } from './types';
 
@@ -55,10 +55,10 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
 
   const [corpus, editorial] = await Promise.all([
     fetchNewsletterCorpus({ issueDate: params.issueDate, lookbackDays, lookaheadDays }),
-    Promise.resolve(loadEditorialGuidance()),
+    loadEditorialGuidance(),
   ]);
 
-  const guidanceForExtract = loadFullGuidance({ research: null }) ?? editorial;
+  const guidanceForExtract = (await loadFullGuidance({ research: null })) ?? editorial;
 
   const { recent, upcoming, readiness } = corpus;
   const baseResult = {
@@ -81,8 +81,8 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
     new Map(recentCapped.map((r) => [r.eventId, r])),
   );
 
-  const research = loadCityResearchForStorylines(storylines);
-  const guidance = loadFullGuidance({ research: research ?? null }) ?? editorial;
+  const research = await loadCityResearchForStorylines(storylines);
+  const guidance = (await loadFullGuidance({ research: research ?? null })) ?? editorial;
 
   console.log(
     `[generate] ${recentCapped.length} meetings → ${storylines.length} storylines [${[...new Set(storylines.map((s) => s.eventId))].join(', ')}]`,
@@ -164,7 +164,7 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
   ];
   body += buildSourcesBlock(sources.map((s) => ({ ...s, baseUrl })));
 
-  const edition = insertDraft({
+  const edition = await insertDraft({
     issueDate: params.issueDate,
     subject: synth.subject.trim(),
     bodyMarkdown: body,

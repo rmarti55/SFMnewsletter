@@ -10,14 +10,14 @@ import {
 import type { Storyline } from '../src/lib/types';
 
 describe('loadCityResearch', () => {
-  it('loads water rebuttal markdown', () => {
-    const research = loadCityResearch();
+  it('loads water rebuttal markdown', async () => {
+    const research = await loadCityResearch();
     expect(research).toContain('water-housing-moratorium');
     expect(research).toContain('outdoor irrigation');
   });
 
-  it('loadFullGuidance includes editorial and research', () => {
-    const full = loadFullGuidance();
+  it('loadFullGuidance includes editorial and research', async () => {
+    const full = await loadFullGuidance();
     expect(full).toContain('Hardline Santa Fe YIMBYs');
     expect(full).toContain('CITY RESEARCH CORPUS');
   });
@@ -73,14 +73,14 @@ describe('research topic guards', () => {
     expect(isResearchTopicActive([])).toBe(false);
   });
 
-  it('allows research in leak surface when topic active', () => {
-    const research = loadCityResearch() ?? '';
+  it('allows research in leak surface when topic active', async () => {
+    const research = (await loadCityResearch()) ?? '';
     const allowed = buildGuidanceLeakAllowedSource('meeting only', research, [waterStoryline]);
     expect(allowed).toContain('outdoor irrigation');
   });
 
-  it('flags research facts when topic inactive', () => {
-    const research = loadCityResearch();
+  it('flags research facts when topic inactive', async () => {
+    const research = await loadCityResearch();
     const body = 'Outdoor irrigation dominates demand on legacy properties.';
     const leaks = findResearchTopicLeaks(body, research, []);
     expect(leaks.length).toBeGreaterThanOrEqual(0);
@@ -88,8 +88,8 @@ describe('research topic guards', () => {
 });
 
 describe('loadEditorialGuidance', () => {
-  it('loads editorial without research header', () => {
-    const editorial = loadEditorialGuidance();
+  it('loads editorial without research header', async () => {
+    const editorial = await loadEditorialGuidance();
     expect(editorial).toContain('Citizen Portal');
     expect(editorial).not.toContain('CITY RESEARCH CORPUS');
   });

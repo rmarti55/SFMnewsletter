@@ -45,8 +45,12 @@ Upload water studies, LDC memos, and other city documents at **`/admin/research`
 | `OPENROUTER_API_KEY` | yes | LLM extract + synthesize |
 | `LLM_SMART_MODEL` | no | default `google/gemini-2.5-flash` |
 | `NEXT_PUBLIC_APP_URL` | no | OpenRouter `HTTP-Referer`; default `http://localhost:3000`. On Vercel set to your production URL. |
-| `DATABASE_PATH` | no | Local default `./data/newsletter.db`. On Vercel, auto-uses `/tmp/newsletter.db` (ephemeral per instance). |
-| `RESEARCH_STORAGE_PATH` | no | Local default `./data/research`. On Vercel, auto-uses `/tmp/research` (ephemeral). Digests in SQLite are what generate reads. |
+| `DATABASE_PATH` | no | Local default `./data/newsletter.db` (ignored when `DATABASE_URL` is set) |
+| `RESEARCH_STORAGE_PATH` | no | Local default `./data/research` (ignored when using Blob on Vercel) |
+| `DATABASE_URL` | **yes on Vercel** | Neon Postgres — durable drafts, research metadata, guidance |
+| `BLOB_READ_WRITE_TOKEN` | **yes on Vercel** | Vercel Blob — durable research file uploads |
+| `ADMIN_SECRET` | **yes on Vercel** | Protects `/admin` and `/api/*` |
+| `EMAIL_FROM` | **yes on Vercel** | Verified Resend sender domain |
 | `RESEND_API_KEY` / `ADMIN_EMAIL` | optional | Send button |
 
 ## Vercel deployment
@@ -56,8 +60,18 @@ Set these in the **sf-mnewsletter** project (Production environment):
 - `NEWSLETTER_EXPORT_API_KEY` — required
 - `OPENROUTER_API_KEY` — required for generate
 - `NEXT_PUBLIC_APP_URL` — e.g. `https://sf-mnewsletter.vercel.app`
+- `DATABASE_URL` — Neon Postgres (Vercel Marketplace)
+- `BLOB_READ_WRITE_TOKEN` — Vercel Blob store
+- `ADMIN_SECRET` — random string for admin login
+- `EMAIL_FROM` — verified sender, e.g. `Newsletter <newsletter@yourdomain.com>`
 
-Redeploy after adding env vars. SQLite drafts and research uploads on Vercel use `/tmp` and **may not persist across cold starts** — uploaded PDF binaries are especially fragile. For durable prod uploads, plan a follow-up: **Vercel Blob** (files) + **Postgres/Neon** (metadata), or maintain digests locally and commit markdown under `guidance/research/`.
+After linking Neon, run migrations once:
+
+```sh
+npx tsx scripts/migrate-postgres.ts
+```
+
+Redeploy after adding env vars. Without `DATABASE_URL`, the app refuses to start on Vercel (no more ephemeral `/tmp` SQLite).
 
 ## Pipeline
 
@@ -65,7 +79,7 @@ Redeploy after adding env vars. SQLite drafts and research uploads on Vercel use
 2. Extract storylines per meeting (OpenRouter) — **editorial guidance only**, no research corpus
 3. Match storylines to research categories → build `CITY RESEARCH CORPUS` from SQLite uploads + legacy `guidance/research/`
 4. Synthesize issue + quote/guidance/research guards
-5. Save SQLite draft
+5. Save draft (SQLite locally, Postgres on Vercel)
 
 Editorial guidance lives in `guidance/editorial.md` (exported from SFM `newsletter_settings`).
 

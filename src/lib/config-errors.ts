@@ -5,6 +5,8 @@ import { OpenRouterError } from './openrouter';
 const CONFIG_ERRORS = new Set([
   'NEWSLETTER_EXPORT_API_KEY is not set',
   'OPENROUTER_API_KEY is not set',
+  'DATABASE_URL is required on Vercel — configure Neon Postgres',
+  'DATABASE_URL is not set',
 ]);
 
 function isReadOnlyFsError(error: unknown): boolean {

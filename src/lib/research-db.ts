@@ -1,6 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
-import path from 'path';
 import { getDb } from './db';
+import { deleteResearchFile, readResearchFileContent, saveResearchFile } from './research-files';
 import { isValidResearchCategory } from './research-categories';
 
 export interface ResearchDocument {
@@ -14,12 +13,6 @@ export interface ResearchDocument {
   digestMarkdown: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-function getResearchStorageDir(): string {
-  if (process.env.RESEARCH_STORAGE_PATH) return process.env.RESEARCH_STORAGE_PATH;
-  if (process.env.VERCEL) return path.join('/tmp', 'research');
-  return path.join(process.cwd(), 'data', 'research');
 }
 
 function rowToDoc(row: Record<string, unknown>): ResearchDocument {
@@ -71,10 +64,6 @@ export function getResearchDocument(id: number): ResearchDocument | null {
   return row ? rowToDoc(row) : null;
 }
 
-function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120) || 'upload';
-}
-
 function extractTextFromBuffer(filename: string, buffer: Buffer): string | null {
   const lower = filename.toLowerCase();
   if (lower.endsWith('.md') || lower.endsWith('.txt') || lower.endsWith('.markdown')) {
@@ -83,21 +72,21 @@ function extractTextFromBuffer(filename: string, buffer: Buffer): string | null 
   return null;
 }
 
-export function insertResearchDocument(input: {
+export async function insertResearchDocument(input: {
   title: string;
   category: string;
   sourceFilename: string;
   mimeType: string | null;
   fileBuffer: Buffer;
   digestMarkdown?: string | null;
-}): ResearchDocument {
+}): Promise<ResearchDocument> {
   initResearchSchema();
   if (!isValidResearchCategory(input.category)) {
     throw new Error(`Invalid category: ${input.category}`);
   }
-
-  const dir = getResearchStorageDir();
-  mkdirSync(dir, { recursive: true });
+  if (isPdfFilename(input.sourceFilename) && !input.digestMarkdown?.trim()) {
+    throw new Error('PDF uploads require a digest with citable facts');
+  }
 
   const extractedText = extractTextFromBuffer(input.sourceFilename, input.fileBuffer);
   const digest = input.digestMarkdown?.trim() || null;
@@ -117,9 +106,7 @@ export function insertResearchDocument(input: {
     );
 
   const id = Number(result.lastInsertRowid);
-  const safeName = `${id}-${sanitizeFilename(input.sourceFilename)}`;
-  const storagePath = path.join(dir, safeName);
-  writeFileSync(storagePath, input.fileBuffer);
+  const storagePath = await saveResearchFile(id, input.sourceFilename, input.fileBuffer);
 
   getDb()
     .prepare(`UPDATE research_documents SET storage_path = ?, updated_at = datetime('now') WHERE id = ?`)
@@ -158,17 +145,11 @@ export function updateResearchDocument(
   return getResearchDocument(id);
 }
 
-export function deleteResearchDocument(id: number): boolean {
+export async function deleteResearchDocument(id: number): Promise<boolean> {
   initResearchSchema();
   const existing = getResearchDocument(id);
   if (!existing) return false;
-  if (existing.storagePath && existsSync(existing.storagePath)) {
-    try {
-      unlinkSync(existing.storagePath);
-    } catch {
-      /* file may already be gone */
-    }
-  }
+  if (existing.storagePath) await deleteResearchFile(existing.storagePath);
   const result = getDb().prepare(`DELETE FROM research_documents WHERE id = ?`).run(id);
   return result.changes > 0;
 }
@@ -179,7 +160,7 @@ export function documentCorpusText(doc: ResearchDocument): string | null {
   if (digest) return digest;
   const extracted = doc.extractedText?.trim();
   if (extracted) return extracted.slice(0, 12_000);
-  return `[Document "${doc.title}" — upload a digest with citable facts; PDF binary stored at id ${doc.id}]`;
+  return null;
 }
 
 export type DocumentCorpusStatus = 'digest' | 'extracted' | 'needs_digest';
@@ -194,7 +175,6 @@ export function isPdfFilename(filename: string): boolean {
   return filename.toLowerCase().endsWith('.pdf');
 }
 
-export function readResearchFile(doc: ResearchDocument): Buffer | null {
-  if (!doc.storagePath || !existsSync(doc.storagePath)) return null;
-  return readFileSync(doc.storagePath);
+export async function readResearchFile(doc: ResearchDocument): Promise<Buffer | null> {
+  return readResearchFileContent(doc.storagePath);
 }

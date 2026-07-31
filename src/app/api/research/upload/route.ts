@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { isValidResearchCategory } from '@/lib/research-categories';
-import { insertResearchDocument } from '@/lib/research-db';
+import { getApiErrorResponse } from '@/lib/config-errors';
+import { insertResearchDocument, isPdfFilename } from '@/lib/storage';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
@@ -16,12 +18,16 @@ export async function POST(request: Request) {
     if (!title) {
       return NextResponse.json({ error: 'title is required' }, { status: 400 });
     }
-    if (!isValidResearchCategory(category)) {
-      return NextResponse.json({ error: 'invalid category' }, { status: 400 });
-    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const doc = insertResearchDocument({
+    if (buffer.length > 4 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 4MB)' }, { status: 413 });
+    }
+    if (isPdfFilename(file.name) && !digestMarkdown) {
+      return NextResponse.json({ error: 'PDF uploads require a digest with citable facts' }, { status: 400 });
+    }
+
+    const doc = await insertResearchDocument({
       title,
       category,
       sourceFilename: file.name,
@@ -32,6 +38,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ document: doc });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Upload failed' }, { status: 500 });
+    console.error('research upload error:', e);
+    if (e instanceof Error && e.message.includes('File too large')) {
+      return NextResponse.json({ error: e.message }, { status: 413 });
+    }
+    if (e instanceof Error && e.message.includes('Invalid category')) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    if (e instanceof Error && e.message.includes('digest')) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    return getApiErrorResponse(e, 'Upload failed');
   }
 }

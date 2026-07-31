@@ -4,6 +4,7 @@ import { fetchNewsletterCorpus } from '@/lib/sfm-client';
 import { getTodayInDenver } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import path from 'path';
 import { getActiveResearchCategories } from './research-categories';
-import { documentCorpusText, listResearchDocuments, type ResearchDocument } from './research-db';
+import { documentCorpusText, listResearchDocuments, loadEditorialGuidanceFromStorage, type ResearchDocument } from './storage';
 
 const LEGACY_RESEARCH_DIR = path.join(process.cwd(), 'guidance', 'research');
 
@@ -27,8 +27,8 @@ function formatDocumentBlock(doc: ResearchDocument): string {
   return `## ${doc.title} (${doc.category})\nSource file: ${doc.sourceFilename}\n\n${body}`;
 }
 
-export function buildResearchCorpus(categoryIds: string[] | null): string | null {
-  const docs = listResearchDocuments();
+export async function buildResearchCorpus(categoryIds: string[] | null): Promise<string | null> {
+  const docs = await listResearchDocuments();
   const legacy = collectLegacyMarkdown(LEGACY_RESEARCH_DIR, categoryIds);
   const blocks: string[] = [];
 
@@ -47,20 +47,20 @@ export function buildResearchCorpus(categoryIds: string[] | null): string | null
   return blocks.join('\n\n---\n\n').trim();
 }
 
-export function loadCityResearch(): string | null {
+export async function loadCityResearch(): Promise<string | null> {
   return buildResearchCorpus(null);
 }
 
-export function loadCityResearchForStorylines(
+export async function loadCityResearchForStorylines(
   storylines: Array<{ headline: string; whatHappened: string; whyItMatters: string }>,
-): string | null {
+): Promise<string | null> {
   const categories = getActiveResearchCategories(storylines);
   return buildResearchCorpus(categories);
 }
 
-export function loadFullGuidance(opts?: { research?: string | null }): string | null {
-  const editorial = readEditorialMarkdown();
-  const research = opts?.research !== undefined ? opts.research : loadCityResearch();
+export async function loadFullGuidance(opts?: { research?: string | null }): Promise<string | null> {
+  const editorial = await loadEditorialGuidance();
+  const research = opts?.research !== undefined ? opts.research : await loadCityResearch();
 
   if (!editorial && !research) return null;
   const blocks: string[] = [];
@@ -73,13 +73,15 @@ export function loadFullGuidance(opts?: { research?: string | null }): string | 
   return blocks.join('\n\n---\n\n').trim() || null;
 }
 
-function readEditorialMarkdown(): string {
+function readEditorialMarkdownFromFile(): string {
   const editorialPath = path.join(process.cwd(), 'guidance', 'editorial.md');
   if (!existsSync(editorialPath)) return '';
   return readFileSync(editorialPath, 'utf8').trim();
 }
 
-export function loadEditorialGuidance(): string | null {
-  const g = readEditorialMarkdown();
+export async function loadEditorialGuidance(): Promise<string | null> {
+  const fromDb = await loadEditorialGuidanceFromStorage();
+  if (fromDb) return fromDb;
+  const g = readEditorialMarkdownFromFile();
   return g || null;
 }
