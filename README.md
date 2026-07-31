@@ -50,7 +50,9 @@ Upload water studies, LDC memos, and other city documents at **`/admin/research`
 | `DATABASE_URL` | **yes on Vercel** | Neon Postgres — durable drafts, research metadata, guidance |
 | `BLOB_READ_WRITE_TOKEN` | **yes on Vercel** | Vercel Blob — durable research file uploads |
 | `EMAIL_FROM` | **yes on Vercel** | Verified Resend sender domain |
-| `RESEND_API_KEY` / `ADMIN_EMAIL` | optional | Send button |
+| `RESEND_API_KEY` | **yes on Vercel** | Magic-link login + draft send |
+| `ADMIN_EMAIL` | **yes on Vercel** | Only address allowed to sign in / receive drafts |
+| `AUTH_SECRET` | **yes on Vercel** | Signs login links (random string, not typed at login) |
 
 ## Vercel deployment
 
@@ -62,6 +64,11 @@ Set these in the **sf-mnewsletter** project (Production environment):
 - `DATABASE_URL` — Neon Postgres (Vercel Marketplace)
 - `BLOB_READ_WRITE_TOKEN` — Vercel Blob store
 - `EMAIL_FROM` — verified sender, e.g. `Newsletter <newsletter@yourdomain.com>`
+- `RESEND_API_KEY` — Resend API key
+- `ADMIN_EMAIL` — your Gmail (only admin who can log in)
+- `AUTH_SECRET` — random string for signing login links
+
+Admin login: visit `/admin/login`, enter `ADMIN_EMAIL`, click the link Resend sends you. No password to remember.
 
 After linking Neon, run migrations once:
 
