@@ -48,13 +48,14 @@ async function main() {
   else {
     console.log(`Issue date: ${issueDate}`);
     if (result.readiness) console.log('Readiness:', result.readiness);
-    if (result.reason === 'empty') console.log('Skipped: empty corpus window');
+    if (result.reason === 'empty_corpus') console.log('Skipped: empty corpus window');
+    else if (result.reason === 'empty_synthesis') console.log('Skipped: empty synthesis body');
     else if (result.edition) {
       console.log(`Draft #${result.edition.id}: ${result.edition.subject}`);
     }
   }
 
-  if (result.reason === 'empty') process.exit(0);
+  if (result.reason === 'empty_corpus' || result.reason === 'empty_synthesis') process.exit(0);
   if (!result.created) process.exit(1);
 }
 

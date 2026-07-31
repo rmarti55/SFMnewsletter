@@ -31,6 +31,24 @@ export interface GenerateDraftParams {
   lookaheadDays?: number;
 }
 
+function buildGenerateMeta(
+  params: GenerateDraftParams,
+  lookbackDays: number,
+  lookaheadDays: number,
+  recent: { length: number },
+  upcoming: { length: number },
+  storylineCount = 0,
+): GenerateResult['meta'] {
+  return {
+    issueDate: params.issueDate,
+    lookbackDays,
+    lookaheadDays,
+    recentCount: recent.length,
+    upcomingCount: upcoming.length,
+    storylineCount,
+  };
+}
+
 export async function generateNewsletterDraft(params: GenerateDraftParams): Promise<GenerateResult> {
   const lookbackDays = params.lookbackDays ?? 7;
   const lookaheadDays = params.lookaheadDays ?? 7;
@@ -43,9 +61,15 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
   const guidanceForExtract = loadFullGuidance({ research: null }) ?? editorial;
 
   const { recent, upcoming, readiness } = corpus;
+  const baseResult = {
+    recent,
+    upcoming,
+    readiness,
+    meta: buildGenerateMeta(params, lookbackDays, lookaheadDays, recent, upcoming),
+  };
 
   if (recent.length === 0 && upcoming.length === 0) {
-    return { created: false, edition: null, reason: 'empty', readiness };
+    return { ...baseResult, created: false, edition: null, reason: 'empty_corpus' };
   }
 
   const recentCapped = recent.slice(0, MAX_RECENT_MEETINGS);
@@ -72,7 +96,15 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
 
   let synth = await runSynthesis(storylines, upcoming, guidance);
   let body = synth.body.trim();
-  if (!body) return { created: false, edition: null, reason: 'empty', readiness };
+  if (!body) {
+    return {
+      ...baseResult,
+      created: false,
+      edition: null,
+      reason: 'empty_synthesis',
+      meta: buildGenerateMeta(params, lookbackDays, lookaheadDays, recent, upcoming, storylines.length),
+    };
+  }
 
   let fabricated = findFabricatedQuotes(body, sourceUnion);
   if (fabricated.length > 0) {
@@ -140,5 +172,11 @@ export async function generateNewsletterDraft(params: GenerateDraftParams): Prom
     model: synth.model,
   });
 
-  return { created: true, edition, reason: 'created', readiness };
+  return {
+    ...baseResult,
+    created: true,
+    edition,
+    reason: 'created',
+    meta: buildGenerateMeta(params, lookbackDays, lookaheadDays, recent, upcoming, storylines.length),
+  };
 }

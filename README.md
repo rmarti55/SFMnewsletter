@@ -75,12 +75,16 @@ Editorial guidance lives in `guidance/editorial.md` (exported from SFM `newslett
 - [OpenRouter integration](docs/openrouter.md) — env, model, attribution, local smoke check
 - [Corpus readiness](docs/corpus-readiness.md) — why some meetings lack transcripts; how to read `readiness.summary` and `sections`
 - [API contract](docs/api-contract.md) — SFM export endpoint field reference
+- [SFNM article fetching](docs/sfnm-fetching.md) — curl-based discovery and full-HTML fetch (soft paywall, rate limits)
+- [Database safety](docs/database-safety.md) — 2026-07-30 draft loss postmortem and test isolation safeguards
 
 ## Tests
 
 ```sh
 npm test
 ```
+
+Tests use isolated temp storage under `os.tmpdir()` — see [Database safety](docs/database-safety.md). Never point `DATABASE_PATH` at `./data/newsletter.db` in test code; `resetDbForTests()` will refuse.
 
 ## Smoke (production API)
 

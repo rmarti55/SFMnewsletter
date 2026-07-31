@@ -7,8 +7,17 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const issueDate = request.nextUrl.searchParams.get('issueDate')?.trim() || getTodayInDenver();
-    const corpus = await fetchNewsletterCorpus({ issueDate });
+    const { searchParams } = request.nextUrl;
+    const issueDate = searchParams.get('issueDate')?.trim() || getTodayInDenver();
+    const lookbackParam = searchParams.get('lookbackDays');
+    const lookaheadParam = searchParams.get('lookaheadDays');
+    const lookbackDays = lookbackParam != null ? Number(lookbackParam) : undefined;
+    const lookaheadDays = lookaheadParam != null ? Number(lookaheadParam) : undefined;
+    const corpus = await fetchNewsletterCorpus({
+      issueDate,
+      lookbackDays: Number.isFinite(lookbackDays) ? lookbackDays : undefined,
+      lookaheadDays: Number.isFinite(lookaheadDays) ? lookaheadDays : undefined,
+    });
     return NextResponse.json(corpus);
   } catch (error) {
     console.error('corpus preview error:', error);

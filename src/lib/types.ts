@@ -90,11 +90,23 @@ export interface NewsletterEdition {
   sentAt: string | null;
 }
 
-export type GenerateReason = 'created' | 'empty';
+export type GenerateReason = 'created' | 'empty_corpus' | 'empty_synthesis';
+
+export interface GenerateMeta {
+  issueDate: string;
+  lookbackDays: number;
+  lookaheadDays: number;
+  recentCount: number;
+  upcomingCount: number;
+  storylineCount: number;
+}
 
 export interface GenerateResult {
   created: boolean;
   edition: NewsletterEdition | null;
   reason: GenerateReason;
-  readiness?: NewsletterReadiness;
+  readiness: NewsletterReadiness;
+  meta: GenerateMeta;
+  recent: RecentExportItem[];
+  upcoming: UpcomingItem[];
 }

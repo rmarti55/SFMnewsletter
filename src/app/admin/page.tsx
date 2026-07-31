@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -9,33 +10,72 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatUsDateKey } from '@/lib/datetime';
+import { formatGenerateSkipMessage, isGenerateSkipReason } from '@/lib/generate-messages';
 import { formatReadinessSummary, reasonLabel } from '@/lib/readiness-summary';
-import type { NewsletterCorpus } from '@/lib/types';
+import type { GenerateMeta, NewsletterCorpus, NewsletterReadiness, RecentExportItem, UpcomingItem } from '@/lib/types';
 
 type ResultKind = 'success' | 'error' | 'info';
 
 function resultKind(message: string): ResultKind {
   if (message.startsWith('Draft #')) return 'success';
-  if (message === 'Empty window — no draft created.') return 'info';
+  if (message.includes('No meetings in window') || message.includes('model returned an empty body')) return 'info';
   if (message === 'Error' || message.includes('Failed')) return 'error';
   return 'info';
 }
 
+function buildCorpusQuery(issueDate: string, lookbackDays: number, lookaheadDays: number): string {
+  const params = new URLSearchParams();
+  if (issueDate) params.set('issueDate', issueDate);
+  params.set('lookbackDays', String(lookbackDays));
+  params.set('lookaheadDays', String(lookaheadDays));
+  return `?${params.toString()}`;
+}
+
+function corpusFromPayload(data: {
+  issueDate: string;
+  lookbackDays: number;
+  lookaheadDays: number;
+  readiness: NewsletterReadiness;
+  recent: RecentExportItem[];
+  upcoming: UpcomingItem[];
+}): NewsletterCorpus {
+  return {
+    issueDate: data.issueDate,
+    lookbackDays: data.lookbackDays,
+    lookaheadDays: data.lookaheadDays,
+    readiness: data.readiness,
+    recent: data.recent ?? [],
+    upcoming: data.upcoming ?? [],
+  };
+}
+
 export default function AdminGeneratePage() {
   const [issueDate, setIssueDate] = useState('');
+  const [lookbackDays, setLookbackDays] = useState(7);
+  const [lookaheadDays, setLookaheadDays] = useState(7);
+  const [resolvedIssueDate, setResolvedIssueDate] = useState('');
   const [corpus, setCorpus] = useState<NewsletterCorpus | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
+  const [draftId, setDraftId] = useState<number | null>(null);
+
+  const issueDateHint = useMemo(() => {
+    if (issueDate) return formatUsDateKey(issueDate);
+    if (resolvedIssueDate) return `${formatUsDateKey(resolvedIssueDate)} (today in Denver)`;
+    return 'Today in Denver when left blank';
+  }, [issueDate, resolvedIssueDate]);
 
   async function previewCorpus() {
     setLoading(true);
     setResult('');
+    setDraftId(null);
     try {
-      const q = issueDate ? `?issueDate=${issueDate}` : '';
-      const res = await fetch(`/api/corpus${q}`);
+      const res = await fetch(`/api/corpus${buildCorpusQuery(issueDate, lookbackDays, lookaheadDays)}`);
       const data = (await res.json()) as NewsletterCorpus & { error?: string };
       if (!res.ok) throw new Error(data.error || 'Failed');
       setCorpus(data);
+      setResolvedIssueDate(data.issueDate);
       setResult(`Recent: ${data.recent?.length ?? 0}, Upcoming: ${data.upcoming?.length ?? 0}`);
     } catch (e) {
       setResult(e instanceof Error ? e.message : 'Error');
@@ -48,18 +88,45 @@ export default function AdminGeneratePage() {
   async function generate() {
     setLoading(true);
     setResult('');
+    setDraftId(null);
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ issueDate: issueDate || undefined }),
+        body: JSON.stringify({
+          issueDate: issueDate || undefined,
+          lookbackDays,
+          lookaheadDays,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
-      if (data.skipped) setResult('Empty window — no draft created.');
-      else setResult(`Draft #${data.edition.id}: ${data.edition.subject}`);
-      if (data.readiness) {
-        setCorpus((prev) => (prev ? { ...prev, readiness: data.readiness } : null));
+
+      setResolvedIssueDate(data.issueDate);
+      setCorpus(
+        corpusFromPayload({
+          issueDate: data.issueDate,
+          lookbackDays: data.lookbackDays,
+          lookaheadDays: data.lookaheadDays,
+          readiness: data.readiness,
+          recent: data.recent ?? [],
+          upcoming: data.upcoming ?? [],
+        }),
+      );
+
+      if (data.skipped && isGenerateSkipReason(data.skipped)) {
+        const meta: GenerateMeta = {
+          issueDate: data.issueDate,
+          lookbackDays: data.lookbackDays,
+          lookaheadDays: data.lookaheadDays,
+          recentCount: data.recentCount,
+          upcomingCount: data.upcomingCount,
+          storylineCount: data.storylineCount ?? 0,
+        };
+        setResult(formatGenerateSkipMessage(data.skipped, meta));
+      } else {
+        setDraftId(data.edition.id);
+        setResult(`Draft #${data.edition.id}: ${data.edition.subject}`);
       }
     } catch (e) {
       setResult(e instanceof Error ? e.message : 'Error');
@@ -84,14 +151,39 @@ export default function AdminGeneratePage() {
           <CardDescription>Choose an issue date, preview readiness, then generate a draft.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2 sm:max-w-xs">
-            <Label htmlFor="issue-date">Issue date</Label>
-            <Input
-              id="issue-date"
-              type="date"
-              value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-            />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-2 sm:col-span-1">
+              <Label htmlFor="issue-date">Issue date</Label>
+              <Input
+                id="issue-date"
+                type="date"
+                value={issueDate}
+                onChange={(e) => setIssueDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Resolved: {issueDateHint}</p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lookback-days">Lookback (days)</Label>
+              <Input
+                id="lookback-days"
+                type="number"
+                min={1}
+                max={30}
+                value={lookbackDays}
+                onChange={(e) => setLookbackDays(Number(e.target.value) || 7)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lookahead-days">Lookahead (days)</Label>
+              <Input
+                id="lookahead-days"
+                type="number"
+                min={1}
+                max={30}
+                value={lookaheadDays}
+                onChange={(e) => setLookaheadDays(Number(e.target.value) || 7)}
+              />
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={previewCorpus} disabled={loading}>
@@ -122,6 +214,12 @@ export default function AdminGeneratePage() {
         <Card>
           <CardHeader>
             <CardTitle className="font-heading text-lg">Readiness summary</CardTitle>
+            {corpus ? (
+              <CardDescription>
+                Window for {formatUsDateKey(corpus.issueDate)} — lookback {corpus.lookbackDays}d, lookahead{' '}
+                {corpus.lookaheadDays}d
+              </CardDescription>
+            ) : null}
           </CardHeader>
           <CardContent>
             <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90">{summary}</pre>
@@ -188,7 +286,14 @@ export default function AdminGeneratePage() {
       {result && kind && (
         <Alert variant={kind === 'error' ? 'destructive' : 'default'}>
           <AlertTitle>{kind === 'success' ? 'Done' : kind === 'error' ? 'Error' : 'Result'}</AlertTitle>
-          <AlertDescription>{result}</AlertDescription>
+          <AlertDescription className="space-y-2">
+            <p>{result}</p>
+            {draftId != null && (
+              <Link href={`/admin/drafts/${draftId}`} className="text-sm font-medium text-primary hover:underline">
+                Open draft #{draftId}
+              </Link>
+            )}
+          </AlertDescription>
         </Alert>
       )}
     </div>
