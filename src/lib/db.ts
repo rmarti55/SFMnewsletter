@@ -1,7 +1,47 @@
 import Database from 'better-sqlite3';
+import os from 'os';
 import path from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { NewsletterEdition } from './types';
+
+const TEST_DB_DIR_MARKER = 'santa-fe-newsletter-test';
+
+/** Refuse destructive test helpers unless storage paths are isolated under os.tmpdir(). */
+export function assertTestOnlyStorage(): void {
+  if (process.env.NEWSLETTER_TEST_MODE !== '1') {
+    throw new Error(
+      'resetDbForTests() refused: NEWSLETTER_TEST_MODE is not set. Run tests via `npm test` only.',
+    );
+  }
+
+  const dbPath = path.resolve(getDbPath());
+  const tmpRoot = path.resolve(os.tmpdir());
+  if (!dbPath.startsWith(tmpRoot + path.sep)) {
+    throw new Error(
+      `resetDbForTests() refused: DATABASE_PATH "${dbPath}" is not under the system temp directory.`,
+    );
+  }
+  if (!dbPath.includes(TEST_DB_DIR_MARKER)) {
+    throw new Error(
+      `resetDbForTests() refused: DATABASE_PATH must live under a "${TEST_DB_DIR_MARKER}-*" directory.`,
+    );
+  }
+
+  const researchDir = process.env.RESEARCH_STORAGE_PATH;
+  if (researchDir) {
+    const researchPath = path.resolve(researchDir);
+    if (!researchPath.startsWith(tmpRoot + path.sep)) {
+      throw new Error(
+        `resetDbForTests() refused: RESEARCH_STORAGE_PATH "${researchPath}" is not under the system temp directory.`,
+      );
+    }
+    if (!researchPath.includes(TEST_DB_DIR_MARKER)) {
+      throw new Error(
+        `resetDbForTests() refused: RESEARCH_STORAGE_PATH must live under a "${TEST_DB_DIR_MARKER}-*" directory.`,
+      );
+    }
+  }
+}
 
 let db: Database.Database | null = null;
 
@@ -109,6 +149,8 @@ export function markSent(id: number): NewsletterEdition | null {
 }
 
 export function resetDbForTests(): void {
+  assertTestOnlyStorage();
+
   if (db) {
     db.close();
     db = null;
