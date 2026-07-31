@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/admin', label: 'Generate', match: (path: string) => path === '/admin' },
   { href: '/admin/drafts', label: 'Drafts', match: (path: string) => path.startsWith('/admin/drafts') },
+  { href: '/admin/articles', label: 'Articles', match: (path: string) => path.startsWith('/admin/articles') },
+  { href: '/minutes', label: 'Minutes', match: (path: string) => path.startsWith('/minutes') },
   { href: '/admin/research', label: 'Research', match: (path: string) => path.startsWith('/admin/research') },
   { href: '/admin/guidance', label: 'Guidance', match: (path: string) => path.startsWith('/admin/guidance') },
 ];

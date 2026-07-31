@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   SESSION_COOKIE,
+  SESSION_TTL_SEC,
   createSessionToken,
   isAuthEnabled,
   sessionCookieOptions,
@@ -8,8 +9,6 @@ import {
 } from '@/lib/auth-session';
 
 export const runtime = 'nodejs';
-
-const SESSION_TTL_SEC = 30 * 24 * 60 * 60;
 
 export async function GET(request: NextRequest) {
   const nextPath = request.nextUrl.searchParams.get('next') || '/admin';

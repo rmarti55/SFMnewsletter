@@ -1,7 +1,7 @@
 export const SESSION_COOKIE = 'sfn_session';
 
 const LOGIN_TTL_SEC = 15 * 60;
-const SESSION_TTL_SEC = 30 * 24 * 60 * 60;
+export const SESSION_TTL_SEC = 400 * 24 * 60 * 60;
 
 type TokenPurpose = 'login' | 'session';
 
@@ -115,10 +115,13 @@ export async function createSessionToken(email: string): Promise<string | null> 
   return createToken(email, 'session', SESSION_TTL_SEC);
 }
 
+export async function getSessionEmail(token: string | undefined): Promise<string | null> {
+  if (!token) return null;
+  return parseToken(token, 'session');
+}
+
 export async function verifySessionToken(token: string | undefined): Promise<boolean> {
-  if (!token) return false;
-  const email = await parseToken(token, 'session');
-  return Boolean(email);
+  return Boolean(await getSessionEmail(token));
 }
 
 export function sessionCookieOptions(maxAgeSec: number) {

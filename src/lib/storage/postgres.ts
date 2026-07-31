@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { neon } from '@neondatabase/serverless';
-import type { NewsletterEdition } from '../types';
+import type { NewsletterEdition, Article } from '../types';
 import { deleteResearchFile, readResearchFileContent, saveResearchFile } from '../research-files';
+import { deleteArticleImage, readArticleImageContent, saveArticleImage } from '../article-files';
+import { resolveUniqueSlug, resolveUniqueSlugAsync, slugifyHeadline } from '../article-slug';
 import { isValidResearchCategory } from '../research-categories';
 
 export interface ResearchDocument {
@@ -71,6 +73,26 @@ export async function ensurePostgresSchema(): Promise<void> {
       markdown TEXT NOT NULL
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS articles (
+      id SERIAL PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
+      headline TEXT NOT NULL,
+      dek TEXT,
+      body_markdown TEXT NOT NULL,
+      image_path TEXT,
+      status TEXT NOT NULL DEFAULT 'listed',
+      emailed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status)
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug)
+  `;
   const guidanceRows = await sql`SELECT COUNT(*)::int AS count FROM guidance_versions`;
   const guidanceCount = (guidanceRows[0] as { count: number }).count;
   if (guidanceCount === 0) {
@@ -97,6 +119,21 @@ function rowToEdition(row: Record<string, unknown>): NewsletterEdition {
     model: (row.model as string) ?? null,
     createdAt: String(row.created_at),
     sentAt: row.sent_at ? String(row.sent_at) : null,
+  };
+}
+
+function rowToArticle(row: Record<string, unknown>): Article {
+  return {
+    id: row.id as number,
+    slug: row.slug as string,
+    headline: row.headline as string,
+    dek: (row.dek as string) ?? null,
+    bodyMarkdown: row.body_markdown as string,
+    imagePath: (row.image_path as string) ?? null,
+    status: row.status as 'draft' | 'listed',
+    emailedAt: row.emailed_at ? String(row.emailed_at) : null,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
   };
 }
 
@@ -319,4 +356,127 @@ export async function listGuidanceVersionsFromDb(): Promise<GuidanceVersion[]> {
 
 export async function initResearchSchema(): Promise<void> {
   await ensurePostgresSchema();
+}
+
+async function slugExistsPostgres(slug: string, excludeId?: number): Promise<boolean> {
+  await ensurePostgresSchema();
+  const sql = getSql();
+  const rows =
+    excludeId != null
+      ? await sql`SELECT id FROM articles WHERE slug = ${slug} AND id != ${excludeId} LIMIT 1`
+      : await sql`SELECT id FROM articles WHERE slug = ${slug} LIMIT 1`;
+  return rows.length > 0;
+}
+
+async function allocateSlugPostgres(headline: string, excludeId?: number): Promise<string> {
+  const base = slugifyHeadline(headline);
+  return resolveUniqueSlugAsync(base, (slug) => slugExistsPostgres(slug, excludeId));
+}
+
+export async function listArticles(options?: { listedOnly?: boolean }): Promise<Article[]> {
+  await ensurePostgresSchema();
+  const sql = getSql();
+  const rows = options?.listedOnly
+    ? await sql`SELECT * FROM articles WHERE status = 'listed' ORDER BY created_at DESC`
+    : await sql`SELECT * FROM articles ORDER BY created_at DESC`;
+  return (rows as Record<string, unknown>[]).map(rowToArticle);
+}
+
+export async function getArticleById(id: number): Promise<Article | null> {
+  await ensurePostgresSchema();
+  const sql = getSql();
+  const rows = await sql`SELECT * FROM articles WHERE id = ${id}`;
+  const row = rows[0] as Record<string, unknown> | undefined;
+  return row ? rowToArticle(row) : null;
+}
+
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  await ensurePostgresSchema();
+  const sql = getSql();
+  const rows = await sql`SELECT * FROM articles WHERE slug = ${slug}`;
+  const row = rows[0] as Record<string, unknown> | undefined;
+  return row ? rowToArticle(row) : null;
+}
+
+export async function insertArticle(input: {
+  headline: string;
+  dek?: string | null;
+  bodyMarkdown: string;
+  status?: 'draft' | 'listed';
+}): Promise<Article> {
+  await ensurePostgresSchema();
+  const headline = input.headline.trim();
+  const bodyMarkdown = input.bodyMarkdown.trim();
+  const dek = input.dek?.trim() || null;
+  const status = input.status ?? 'listed';
+  const slug = await allocateSlugPostgres(headline);
+  const sql = getSql();
+  const rows = await sql`
+    INSERT INTO articles (slug, headline, dek, body_markdown, status)
+    VALUES (${slug}, ${headline}, ${dek}, ${bodyMarkdown}, ${status})
+    RETURNING *
+  `;
+  return rowToArticle(rows[0] as Record<string, unknown>);
+}
+
+export async function updateArticle(
+  id: number,
+  patch: {
+    headline?: string;
+    dek?: string | null;
+    bodyMarkdown?: string;
+    imagePath?: string | null;
+    status?: 'draft' | 'listed';
+  },
+): Promise<Article | null> {
+  const existing = await getArticleById(id);
+  if (!existing) return null;
+  await ensurePostgresSchema();
+  const sql = getSql();
+  const rows = await sql`
+    UPDATE articles SET
+      headline = ${patch.headline?.trim() ?? existing.headline},
+      dek = ${patch.dek !== undefined ? patch.dek?.trim() || null : existing.dek},
+      body_markdown = ${patch.bodyMarkdown?.trim() ?? existing.bodyMarkdown},
+      image_path = ${patch.imagePath !== undefined ? patch.imagePath : existing.imagePath},
+      status = ${patch.status ?? existing.status},
+      updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  return rowToArticle(rows[0] as Record<string, unknown>);
+}
+
+export async function deleteArticle(id: number): Promise<boolean> {
+  const existing = await getArticleById(id);
+  if (!existing) return false;
+  if (existing.imagePath) await deleteArticleImage(existing.imagePath);
+  await ensurePostgresSchema();
+  const sql = getSql();
+  const rows = await sql`DELETE FROM articles WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
+export async function markArticleEmailed(id: number): Promise<Article | null> {
+  await ensurePostgresSchema();
+  const sql = getSql();
+  await sql`UPDATE articles SET emailed_at = NOW(), updated_at = NOW() WHERE id = ${id}`;
+  return getArticleById(id);
+}
+
+export async function saveArticleImageForId(
+  articleId: number,
+  filename: string,
+  buffer: Buffer,
+): Promise<Article | null> {
+  const existing = await getArticleById(articleId);
+  if (!existing) return null;
+  if (existing.imagePath) await deleteArticleImage(existing.imagePath);
+  const imagePath = await saveArticleImage(articleId, filename, buffer);
+  return updateArticle(articleId, { imagePath });
+}
+
+export async function readArticleImage(article: Article): Promise<Buffer | null> {
+  if (!article.imagePath) return null;
+  return readArticleImageContent(article.imagePath);
 }

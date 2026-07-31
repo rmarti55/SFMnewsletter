@@ -110,3 +110,16 @@ export interface GenerateResult {
   recent: RecentExportItem[];
   upcoming: UpcomingItem[];
 }
+
+export interface Article {
+  id: number;
+  slug: string;
+  headline: string;
+  dek: string | null;
+  bodyMarkdown: string;
+  imagePath: string | null;
+  status: 'draft' | 'listed';
+  emailedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

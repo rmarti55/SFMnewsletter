@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  SESSION_TTL_SEC,
   createLoginToken,
   createSessionToken,
   getAdminEmail,
+  getSessionEmail,
   isAuthEnabled,
   verifyLoginToken,
   verifySessionToken,
@@ -37,8 +39,14 @@ describe('auth-session', () => {
 
     const session = await createSessionToken('ramonlorenzomartinez@gmail.com');
     expect(session).toBeTruthy();
+    expect(await getSessionEmail(session!)).toBe('ramonlorenzomartinez@gmail.com');
     expect(await verifySessionToken(session!)).toBe(true);
     expect(await verifySessionToken(undefined)).toBe(false);
+    expect(await getSessionEmail(undefined)).toBeNull();
+  });
+
+  it('uses a 400-day session TTL', () => {
+    expect(SESSION_TTL_SEC).toBe(400 * 24 * 60 * 60);
   });
 
   it('rejects wrong admin email in token payload', async () => {

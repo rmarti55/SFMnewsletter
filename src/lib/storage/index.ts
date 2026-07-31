@@ -22,12 +22,30 @@ import {
   type DocumentCorpusStatus,
   type ResearchDocument,
 } from '../research-db';
-import { listGuidanceVersions, saveEditorialGuidance as sqliteSaveGuidance } from '../guidance-store';
+import {
+  deleteArticle as sqliteDeleteArticle,
+  getArticleById as sqliteGetArticleById,
+  getArticleBySlug as sqliteGetArticleBySlug,
+  insertArticle as sqliteInsertArticle,
+  listArticles as sqliteListArticles,
+  markArticleEmailed as sqliteMarkArticleEmailed,
+  updateArticle as sqliteUpdateArticle,
+} from '../articles-db';
 import {
   listGuidanceVersionsFromDb,
   loadEditorialGuidanceFromDb,
+  readArticleImage as postgresReadArticleImage,
+  saveArticleImageForId as postgresSaveArticleImageForId,
   saveEditorialGuidance as postgresSaveGuidance,
 } from './postgres';
+import { listGuidanceVersions, saveEditorialGuidance as sqliteSaveGuidance } from '../guidance-store';
+import {
+  assertArticleImageType,
+  readArticleImageContent,
+  saveArticleImage,
+} from '../article-files';
+import { getArticleImageUrl, guessImageMimeType } from '../article-image-url';
+import type { Article } from '../types';
 
 export type { ResearchDocument, DocumentCorpusStatus };
 
@@ -146,3 +164,79 @@ export async function listGuidanceVersionsFromStorage() {
 }
 
 export { documentCorpusText, documentCorpusStatus, isPdfFilename };
+export { getArticleImageUrl, guessImageMimeType } from '../article-image-url';
+
+export async function listArticles(options?: { listedOnly?: boolean }) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.listArticles(options);
+  return sqliteListArticles(options);
+}
+
+export async function getArticleById(id: number) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.getArticleById(id);
+  return sqliteGetArticleById(id);
+}
+
+export async function getArticleBySlug(slug: string) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.getArticleBySlug(slug);
+  return sqliteGetArticleBySlug(slug);
+}
+
+export async function insertArticle(input: {
+  headline: string;
+  dek?: string | null;
+  bodyMarkdown: string;
+  status?: 'draft' | 'listed';
+}) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.insertArticle(input);
+  return sqliteInsertArticle(input);
+}
+
+export async function updateArticle(
+  id: number,
+  patch: {
+    headline?: string;
+    dek?: string | null;
+    bodyMarkdown?: string;
+    imagePath?: string | null;
+    status?: 'draft' | 'listed';
+  },
+) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.updateArticle(id, patch);
+  return sqliteUpdateArticle(id, patch);
+}
+
+export async function deleteArticle(id: number) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.deleteArticle(id);
+  return sqliteDeleteArticle(id);
+}
+
+export async function markArticleEmailed(id: number) {
+  ensureConfigured();
+  if (usePostgres()) return postgres.markArticleEmailed(id);
+  return sqliteMarkArticleEmailed(id);
+}
+
+export async function saveArticleImageForId(articleId: number, filename: string, buffer: Buffer) {
+  ensureConfigured();
+  assertArticleImageType(null, filename);
+  if (usePostgres()) return postgresSaveArticleImageForId(articleId, filename, buffer);
+  const existing = sqliteGetArticleById(articleId);
+  if (!existing) return null;
+  const { deleteArticleImage } = await import('../article-files');
+  if (existing.imagePath) await deleteArticleImage(existing.imagePath);
+  const imagePath = await saveArticleImage(articleId, filename, buffer);
+  return sqliteUpdateArticle(articleId, { imagePath });
+}
+
+export async function readArticleImage(article: Article) {
+  ensureConfigured();
+  if (usePostgres()) return postgresReadArticleImage(article);
+  if (!article.imagePath) return null;
+  return readArticleImageContent(article.imagePath);
+}

@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { SESSION_COOKIE, getAdminEmail, getAuthSecret, verifySessionToken } from '@/lib/auth-session';
+import {
+  SESSION_COOKIE,
+  SESSION_TTL_SEC,
+  createSessionToken,
+  getAdminEmail,
+  getAuthSecret,
+  getSessionEmail,
+  sessionCookieOptions,
+} from '@/lib/auth-session';
 
 export async function middleware(request: NextRequest) {
   if (!getAdminEmail() || !getAuthSecret()) return NextResponse.next();
@@ -11,8 +19,14 @@ export async function middleware(request: NextRequest) {
   }
 
   const session = request.cookies.get(SESSION_COOKIE)?.value;
-  if (await verifySessionToken(session)) {
-    return NextResponse.next();
+  const email = await getSessionEmail(session);
+  if (email) {
+    const response = NextResponse.next();
+    const refreshed = await createSessionToken(email);
+    if (refreshed) {
+      response.cookies.set(SESSION_COOKIE, refreshed, sessionCookieOptions(SESSION_TTL_SEC));
+    }
+    return response;
   }
 
   if (pathname.startsWith('/api/')) {
@@ -25,5 +39,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/:path*'],
+  matcher: ['/admin/:path*', '/api/:path*', '/minutes', '/minutes/:path*'],
 };
