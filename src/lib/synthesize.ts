@@ -68,17 +68,26 @@ export async function runSynthesis(
     userText += `\n\nFORBIDDEN FRAMINGS — remove or rewrite any sentence containing these phrases:\n${opts.forbiddenFramings.map((f) => `- ${f}`).join('\n')}`;
   }
   const cooler = Boolean(opts?.forbiddenQuotes?.length || opts?.forbiddenGuidanceFacts?.length || opts?.forbiddenFramings?.length);
-  const { data, model } = await jsonCompletion<{ subject: string; body: string }>(
-    [
-      { role: 'system', content: buildSynthesisSystemPrompt(guidance) },
-      { role: 'user', content: userText },
-    ],
-    {
+  const messages: { role: 'system' | 'user'; content: string }[] = [
+    { role: 'system', content: buildSynthesisSystemPrompt(guidance) },
+    { role: 'user', content: userText },
+  ];
+
+  const attempt = async (maxTokens: number) =>
+    jsonCompletion<{ subject: string; body: string }>(messages, {
       temperature: cooler ? 0.2 : 0.4,
-      maxTokens: 1600,
+      maxTokens,
       feature: 'newsletter',
       fallback: { subject: '', body: '' },
-    },
-  );
+    });
+
+  let { data, model } = await attempt(4096);
+  if (!data.body.trim()) {
+    console.warn('[synthesize] empty body at 4096 tokens — retrying with 8192');
+    ({ data, model } = await attempt(8192));
+  }
+  if (!data.body.trim()) {
+    console.warn('[synthesize] synthesis still empty after retry');
+  }
   return { subject: data.subject, body: data.body, model };
 }

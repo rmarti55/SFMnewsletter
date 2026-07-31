@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'fs';
+import path from 'path';
 import { neon } from '@neondatabase/serverless';
 import type { NewsletterEdition } from '../types';
 import { deleteResearchFile, readResearchFileContent, saveResearchFile } from '../research-files';
@@ -69,6 +71,18 @@ export async function ensurePostgresSchema(): Promise<void> {
       markdown TEXT NOT NULL
     )
   `;
+  const guidanceRows = await sql`SELECT COUNT(*)::int AS count FROM guidance_versions`;
+  const guidanceCount = (guidanceRows[0] as { count: number }).count;
+  if (guidanceCount === 0) {
+    const editorialPath = path.join(process.cwd(), 'guidance', 'editorial.md');
+    if (existsSync(editorialPath)) {
+      const markdown = readFileSync(editorialPath, 'utf8').trim();
+      if (markdown) {
+        await sql`INSERT INTO guidance_versions (markdown) VALUES (${markdown})`;
+        console.log('[postgres] seeded editorial guidance from guidance/editorial.md');
+      }
+    }
+  }
   schemaReady = true;
 }
 

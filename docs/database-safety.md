@@ -120,7 +120,7 @@ Production `./data/` is never referenced during `npm test`.
 
 | Risk | Status |
 | --- | --- |
-| **Vercel ephemeral `/tmp`** | Unchanged. Drafts on Vercel still vanish on redeploy/cold start. Use local dev for durable drafts, or migrate to Postgres/Blob (see README). |
+| **Vercel without Postgres/Blob** | The app now **requires** `DATABASE_URL` on Vercel (no `/tmp` SQLite). Link Neon + Blob in the Vercel project for durable drafts and research uploads. |
 | **Manual `rm data/newsletter.db`** | Unprotected — don't do that. |
 | **Lost drafts from 2026-07-30** | Not recoverable from git. Check Resend sent mail if any draft was emailed. |
 

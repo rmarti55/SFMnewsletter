@@ -49,7 +49,6 @@ Upload water studies, LDC memos, and other city documents at **`/admin/research`
 | `RESEARCH_STORAGE_PATH` | no | Local default `./data/research` (ignored when using Blob on Vercel) |
 | `DATABASE_URL` | **yes on Vercel** | Neon Postgres — durable drafts, research metadata, guidance |
 | `BLOB_READ_WRITE_TOKEN` | **yes on Vercel** | Vercel Blob — durable research file uploads |
-| `ADMIN_SECRET` | **yes on Vercel** | Protects `/admin` and `/api/*` |
 | `EMAIL_FROM` | **yes on Vercel** | Verified Resend sender domain |
 | `RESEND_API_KEY` / `ADMIN_EMAIL` | optional | Send button |
 
@@ -62,7 +61,6 @@ Set these in the **sf-mnewsletter** project (Production environment):
 - `NEXT_PUBLIC_APP_URL` — e.g. `https://sf-mnewsletter.vercel.app`
 - `DATABASE_URL` — Neon Postgres (Vercel Marketplace)
 - `BLOB_READ_WRITE_TOKEN` — Vercel Blob store
-- `ADMIN_SECRET` — random string for admin login
 - `EMAIL_FROM` — verified sender, e.g. `Newsletter <newsletter@yourdomain.com>`
 
 After linking Neon, run migrations once:

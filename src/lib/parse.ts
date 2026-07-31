@@ -44,10 +44,14 @@ export function extractJsonObject(raw: string): string | null {
 
 export function parseJsonResponse<T>(raw: string, fallback: T): T {
   const json = extractJsonObject(raw);
-  if (!json) return fallback;
+  if (!json) {
+    if (raw.trim()) console.warn('[parse] no JSON object in model response');
+    return fallback;
+  }
   try {
     return JSON.parse(json) as T;
   } catch {
+    console.warn('[parse] JSON.parse failed on extracted object');
     return fallback;
   }
 }
