@@ -4,6 +4,7 @@ import path from 'path';
 import { config } from 'dotenv';
 
 config({ path: path.join(process.cwd(), '.env.local') });
+config({ path: path.join(process.cwd(), '.env.production.local') });
 
 async function main() {
   const { ensurePostgresSchema } = await import('../src/lib/storage/postgres');
